@@ -1,0 +1,35 @@
+version = 1
+revision = 1
+requires-python = ">=3.13"
+
+[[package]]
+name = "flood-defence-condition"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "project-paths" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "project-paths", specifier = ">=1.1.1" }]
+
+[[package]]
+name = "project-paths"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "toml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c7/08/53040f2005ce8dd4229018b4026d3a0de0636d8745f32e67ace1e3a19998/project-paths-1.1.1.tar.gz", hash = "sha256:b040f701fcdd550e7fa6ea85fa8a82ae047da755b4d639a1b278da7c959fdada", size = 7043 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/23/191bf70c5f2cdfedf4e23621ac5d6fd4761ccb74f3cae7ba751b9c3a4eda/project_paths-1.1.1-py3-none-any.whl", hash = "sha256:5e93b759772f47d79f86ad5482c55ef1cc9566de6a4108aab939b6e0e602cf2d", size = 6874 },
+]
+
+[[package]]
+name = "toml"
+version = "0.10.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588 },
+]

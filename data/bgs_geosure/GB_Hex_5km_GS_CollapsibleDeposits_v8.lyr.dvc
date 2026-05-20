@@ -1,0 +1,5 @@
+outs:
+- md5: 321e3d3f575873bf005a8515febca45e
+  size: 10240
+  hash: md5
+  path: GB_Hex_5km_GS_CollapsibleDeposits_v8.lyr

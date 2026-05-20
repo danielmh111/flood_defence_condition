@@ -1,0 +1,5 @@
+outs:
+- md5: 8e233fa3d1bff3849a1bf5dd020822c3
+  size: 215
+  hash: md5
+  path: GB_Hex_5km_GS_CollapsibleDeposits_v8_Colour_LookUp_Table.txt

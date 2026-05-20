@@ -1,0 +1,5 @@
+outs:
+- md5: 915a72891c37c911ba3473888b88e776
+  size: 232859
+  hash: md5
+  path: camels_gb_v2_landcover_attributes.csv

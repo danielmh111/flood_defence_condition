@@ -1,0 +1,5 @@
+outs:
+- md5: 8d4362165feb67474674ddbb657f2753
+  size: 42246
+  hash: md5
+  path: camels_gb_v2_climatic_attributes.csv

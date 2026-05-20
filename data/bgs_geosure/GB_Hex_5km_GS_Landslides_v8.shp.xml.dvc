@@ -1,0 +1,5 @@
+outs:
+- md5: c4c1c8916f87b3d4be035e1e420741ae
+  size: 24004
+  hash: md5
+  path: GB_Hex_5km_GS_Landslides_v8.shp.xml

@@ -1,0 +1,5 @@
+outs:
+- md5: 21eb32b3dda954a51d69d2ba1401bdce
+  size: 165317
+  hash: md5
+  path: camels_gb_v2_hydrometry_attributes.csv

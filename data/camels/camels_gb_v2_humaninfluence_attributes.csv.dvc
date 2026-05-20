@@ -1,0 +1,5 @@
+outs:
+- md5: 0b7cc1dc624b10a5f88c14d4b0b39fd5
+  size: 83989
+  hash: md5
+  path: camels_gb_v2_humaninfluence_attributes.csv

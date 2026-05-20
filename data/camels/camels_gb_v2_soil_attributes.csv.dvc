@@ -1,0 +1,5 @@
+outs:
+- md5: 47c9f8ff747a251b0585c319bd4d3b5b
+  size: 177063
+  hash: md5
+  path: camels_gb_v2_soil_attributes.csv

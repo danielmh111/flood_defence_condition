@@ -1,0 +1,5 @@
+outs:
+- md5: 8e26a3dbae81c3c42622581419bd5532
+  size: 17592076
+  hash: md5
+  path: camels_gb_v2_catchment_boundaries.shp

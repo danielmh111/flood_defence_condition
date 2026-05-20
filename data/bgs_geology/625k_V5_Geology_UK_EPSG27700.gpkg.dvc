@@ -1,0 +1,5 @@
+outs:
+- md5: 559681730ddf9355884b39416210ee19
+  size: 42921984
+  hash: md5
+  path: 625k_V5_Geology_UK_EPSG27700.gpkg

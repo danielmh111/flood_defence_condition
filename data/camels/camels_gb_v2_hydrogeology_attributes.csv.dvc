@@ -1,0 +1,5 @@
+outs:
+- md5: 33e0b34ed1835298ea7ae38184086b0d
+  size: 36001
+  hash: md5
+  path: camels_gb_v2_hydrogeology_attributes.csv

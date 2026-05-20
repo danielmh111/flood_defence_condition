@@ -1,0 +1,5 @@
+outs:
+- md5: 1cc5cf4ab5f9edb98b07bb23bc8fbc20
+  size: 25021
+  hash: md5
+  path: GB_Hex_5km_GS_CollapsibleDeposits_v8.shp.xml

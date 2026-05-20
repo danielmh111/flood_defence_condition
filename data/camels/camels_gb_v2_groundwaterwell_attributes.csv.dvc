@@ -1,0 +1,5 @@
+outs:
+- md5: aa77f44e06c4c95418aea550df962b33
+  size: 6406
+  hash: md5
+  path: camels_gb_v2_groundwaterwell_attributes.csv

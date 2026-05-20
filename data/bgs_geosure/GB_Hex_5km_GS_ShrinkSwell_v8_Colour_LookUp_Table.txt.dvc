@@ -1,0 +1,5 @@
+outs:
+- md5: 02fd14a5b2a5645039b236c55473c017
+  size: 203
+  hash: md5
+  path: GB_Hex_5km_GS_ShrinkSwell_v8_Colour_LookUp_Table.txt

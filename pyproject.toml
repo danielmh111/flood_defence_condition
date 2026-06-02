@@ -22,15 +22,14 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "nbdime>=4.0.4",
-]
+dev = ["nbdime>=4.0.4"]
 
 
 [tool.project-paths]
 data = "./data"
 aims_data = "./data/aims"
 geology_data = "./data/bgs_geology"
+geosure_data = "./data/bgs_geosure"
 hydrogeology_data = "./data/bgs_hydrogeology"
 camels_data = "./data/camels"
 ea_data = "./data/ea"

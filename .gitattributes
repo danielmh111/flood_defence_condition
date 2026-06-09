@@ -3,4 +3,4 @@
 
 *.ipynb	merge=jupyternotebook
 
-*.ipynb filter=nbstripout
+# *.ipynb filter=nbstripout

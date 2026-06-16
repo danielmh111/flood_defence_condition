@@ -1,0 +1,404 @@
+
+---
+title: "EDA"
+format: pdf
+engine: knitr
+---
+
+
+
+
+```{r}
+library(arrow)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(sf)
+library(ggspatial)
+library(ggridges)
+library(irr)
+```
+
+
+```{r}
+data_dir <- ".././data/"
+fig_dir <- ".././outputs/figures"
+```
+
+
+
+```{r}
+df <- arrow::read_parquet(file.path(data_dir, "processed/unified_aims_eir_bgs.parquet"))
+dim(df)
+```
+
+```{r}
+
+
+# pull out the digits using the regex, so strips the whitespace, then converts to int. any whitespace becomes na
+parse_grade <- function(x) as.integer(str_extract(str_trim(as.character(x)), "^\\d+"))
+
+geosure_cols <- c(
+  "geosure_collapsible_deposits__class",
+  "geosure_compressible_ground__class",
+  "geosure_landslides__class",
+  "geosure_running_sand__class",
+  "geosure_shrink_swell__class",
+  "geosure_soluble_rocks__class"
+)
+
+df <- df %>%
+  mutate(
+    grade_aims = parse_grade(`aims__current_condition`), 
+    grade_eir  = parse_grade(`eir__condition_grade`),
+    across(all_of(geosure_cols), as.integer)
+  )
+
+dim(df)
+```
+
+
+```{r}
+# asserts none of the redacted values are present
+stopifnot(sum(df$grade_eir %in% c(888, 999), na.rm = TRUE) == 0)
+print("passed")
+```
+
+```{r}
+
+# class balance inc. grade 0
+df %>% count(grade_aims) %>% arrange(grade_aims)
+```
+
+```{r}
+
+
+graded <- df %>% filter(between(grade_aims, 1, 5))
+dim(graded)
+```
+
+```{r}
+# choropleth of condition grade
+
+aims_src   <- file.path(data_dir, "aims/aims.gpkg")   
+camels_src <- file.path(data_dir, "camels/camels_gb_v2_catchment_boundaries.shp")
+
+
+aims_geom <- st_read(aims_src) %>%
+  select(asset_id) %>%
+  mutate(asset_id = as.integer(asset_id))
+
+
+grades <- graded %>%
+  transmute(
+    asset_id = as.integer(`aims__asset_id`),
+    grade_aims,
+    asset_sub_type = `aims__asset_sub_type`
+  )
+
+print(grades)
+```
+
+```{r}
+
+assets_sf <- aims_geom %>% inner_join(grades, by = "asset_id")
+assets_sf$grade_aims <- factor(assets_sf$grade_aims, levels = 1:5)
+```
+
+```{r}
+
+camels <- st_read(camels_src) %>%  st_set_crs(27700) %>% st_transform(st_crs(assets_sf))
+
+ggplot() +
+  geom_sf(
+    data = camels,    
+    fill = NA, 
+    colour = "grey70", 
+    linewidth = 0.1
+  ) +
+  geom_sf(data = assets_sf, aes(colour = grade_aims), linewidth = 0.3) +
+  scale_colour_brewer(palette = "Spectral", direction = -1) +
+  coord_sf(datum = st_crs(27700)) +
+  theme_void()
+```
+
+
+
+
+```{r}
+ggplot() +
+  geom_sf(
+    data = camels,    
+    fill = "grey85",
+    colour = "grey60",
+    linewidth = 0.1
+  ) +
+  geom_sf(data = assets_sf, aes(colour = grade_aims), linewidth = 0.3) +
+  scale_colour_brewer(palette = "Spectral", direction = -1) +
+  coord_sf(datum = st_crs(27700)) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = "grey85", colour = NA),
+    panel.background = element_rect(fill = "grey85", colour = NA)
+  )
+```
+
+
+```{r}
+# library(rnaturalearth)
+
+# england <- ne_states(country = "united kingdom", returnclass = "sf") |>
+#   dplyr::filter(name == "England") |>
+#   sf::st_transform(27700)
+
+# camels_eng  <- sf::st_filter(camels, england)
+# assets_eng  <- sf::st_filter(assets_sf, england)
+
+
+# dim(camels_eng)
+# dim(assets_eng)
+
+# eng_bbox <- sf::st_bbox(england)
+
+# print(eng_bbox)
+# sf::st_crs(camels)
+# sf::st_crs(assets_sf)
+
+ggplot() +
+  geom_sf(
+    data = camels, #camels_eng, 
+    fill = "grey85", 
+    colour = "grey60", 
+    linewidth = 0.1
+  ) +
+  geom_sf(
+    data = assets_sf, #assets_eng, 
+    aes(colour = grade_aims), 
+    linewidth = 0.3
+  ) +
+  scale_colour_brewer(palette = "Spectral", direction = -1) +
+  # coord_sf(
+  #   crs = st_crs(27700),
+  #   xlim = c(eng_bbox["xmin"], eng_bbox["xmax"]),
+  #   ylim = c(eng_bbox["ymin"], eng_bbox["ymax"])
+  # ) +
+  coord_sf(
+    crs = st_crs(27700),
+    xlim = c(82672, 655000),
+    ylim = c(5354, 630000),
+    expand = FALSE
+  ) +
+  theme_void() +
+  theme(
+    plot.background  = element_rect(fill = "grey85", colour = NA),
+    panel.background = element_rect(fill = "grey85", colour = NA)
+  )
+```
+
+```{r}
+
+ggsave(file.path(fig_dir, "choropleth_condition.png"), width = 8, height = 10, dpi = 300)
+```
+
+
+These visualisations so far are not really good enough to call finished. I tried the grey background to try and make the yellow stand out more, but its also reducing the contrast so its not as easy to see the difference between the grades. I think the final version will have to be more like a heatmap where small areas (aggregated) are given a colour fill depending on the grades of assets it contains. This could be combined with a zoomed in versiono with the exact lines for specific regions (e.g. somerset levels, thames basin). 
+
+
+
+
+
+
+
+```{r}
+
+long <- graded %>%
+  select(grade_aims, all_of(geosure_cols)) %>%
+  pivot_longer(
+    cols = all_of(geosure_cols),
+    names_to = "hazard",
+    values_to = "hazard_class"
+  ) %>%
+  mutate(hazard = str_remove_all(hazard, "geosure_|__class")) %>%
+  filter(!is.na(hazard_class))
+
+```
+
+```{r}
+long %>%
+  count(hazard, hazard_class, grade_aims) %>%
+  pivot_wider(names_from = grade_aims, values_from = n, values_fill = 0) %>%
+  arrange(hazard, hazard_class)
+```
+
+```{r}
+med <- long %>%
+  group_by(hazard, hazard_class) %>%
+  summarise(median_grade = median(grade_aims), n = n(), .groups = "drop")
+```
+
+```{r}
+ggplot(med, aes(x = factor(hazard_class), y = hazard, fill = median_grade)) +
+  geom_tile() +
+  geom_text(aes(label = round(median_grade, 1))) +
+  scale_fill_viridis_c(direction = -1)
+```
+
+median grade is 3 for everything...
+
+```{r}
+ggplot(long, aes(x = grade_aims, y = factor(hazard_class), fill = factor(hazard_class))) +
+  geom_density_ridges(stat = "binline", bins = 5, scale = 0.9) +
+  facet_wrap(~ hazard) +
+  guides(fill = "none")
+```
+
+and distributions look pretty much the same for all.
+This doesn't do anything to support the hypothesis that soil type is a good predictor of contition because of sub surface failure mechs
+
+
+```{r}
+hazard_stats <- long %>%
+  split(.$hazard) %>%
+  lapply(function(d) {
+    sp <- suppressWarnings(cor.test(d$hazard_class, d$grade_aims, method = "spearman"))
+    kw <- kruskal.test(grade_aims ~ hazard_class, data = d)
+    data.frame(
+      spearman_rho = unname(sp$estimate), spearman_p = sp$p.value,
+      kw_H = unname(kw$statistic),        kw_p = kw$p.value,
+      n = nrow(d)
+    )
+  }) %>%
+  bind_rows(.id = "hazard") %>%
+  arrange(spearman_rho)
+hazard_stats
+
+```
+
+
+
+```{r}
+agree <- df %>% filter(between(grade_aims, 1, 5), between(grade_eir, 1, 5))
+
+```
+
+```{r}
+conf <- table(AIMS = agree$grade_aims, EIR = agree$grade_eir)
+conf
+```
+
+output:
+> conf
+    EIR
+AIMS     1     2     3     4     5
+   1   441    28     3     0     0
+   2    15  8013   294    15     1
+   3     6   271 22426   260    20
+   4     6    16   235  2595    29
+   5     0     3    16    13   489
+> 
+
+
+```{r}
+exact <- mean(agree$grade_aims == agree$grade_eir)
+within1 <- mean(abs(agree$grade_aims - agree$grade_eir) <= 1)
+c(exact = exact, within1 = within1)
+```
+
+    exact   within1 
+0.9650234 0.9975565 
+
+```{r}
+
+irr::kappa2(agree[, c("grade_aims", "grade_eir")], weight = "squared")
+```
+
+
+```{r}
+agree %>%
+  mutate(disagree = grade_aims != grade_eir) %>%
+  group_by(asset_sub_type = `aims__asset_sub_type`) %>%
+  summarise(disagree_rate = mean(disagree), n = n(), .groups = "drop") %>%
+  filter(n >= 50) %>%
+  arrange(desc(disagree_rate))
+```
+
+close enough that i think just using eir is the correct approach here. 
+
+
+
+
+
+
+
+```{r}
+snapshot <- max(df$`eir__inspection_date`, na.rm = TRUE)
+```
+
+```{r}
+rec <- graded %>%
+  mutate(days_since = as.numeric(difftime(snapshot, `eir__inspection_date`, units = "days"))) %>%
+  filter(!is.na(days_since))
+```
+
+
+```{r}
+ggplot(rec, aes(x = factor(grade_aims), y = days_since)) + geom_boxplot()
+suppressWarnings(cor.test(rec$days_since, rec$grade_aims, method = "spearman"))
+```
+
+```{r}
+
+library(readr)
+
+eir_data = file.path(data_dir, "ea/ea_eir_data.csv" )
+eir_long <- read_csv(eir_data) %>%
+  mutate(`Completion Date` = as.Date(`Completion Date`, format = "%d/%m/%Y"))
+
+freq <- eir_long %>%
+  group_by(`Asset AIMS ID`) %>%
+  summarise(
+    n_inspections = n(),
+    span_days = as.numeric(difftime(max(`Completion Date`), min(`Completion Date`), units = "days")),
+    .groups = "drop"
+  ) %>%
+  mutate(insp_per_yr = n_inspections / (span_days / 365.25))
+
+latest_grade <- eir_long %>%
+  arrange(`Completion Date`) %>%
+  group_by(`Asset AIMS ID`) %>%
+  summarise(latest_grade = last(`Calculated Condition`), .groups = "drop")
+
+freq %>% inner_join(latest_grade, by = "Asset AIMS ID") %>% filter(is.finite(insp_per_yr))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+geo5 <- graded %>%
+  mutate(dominant_class = pmax(!!!syms(geosure_cols), na.rm = TRUE)) %>%
+  filter(!is.na(dominant_class))
+
+
+heat <- geo5 %>%
+  count(asset_sub_type = `aims__asset_sub_type`, dominant_class) %>%
+  group_by(asset_sub_type) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+
+ggplot(heat, aes(x = factor(dominant_class), y = asset_sub_type, fill = prop)) +
+  geom_tile() +
+  scale_fill_viridis_c()
+```

@@ -1,0 +1,5 @@
+outs:
+- md5: c71bce0f8df012741f3dcac6b24c96fc
+  size: 18374656
+  hash: md5
+  path: graded_assets.gpkg

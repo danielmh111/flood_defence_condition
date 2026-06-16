@@ -31,7 +31,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["nbdime>=4.0.4"]
+dev = [
+    "nbdime>=4.0.4",
+    "python-dotenv>=1.2.2",
+]
 
 
 [tool.project-paths]
@@ -43,3 +46,4 @@ hydrogeology_data = "./data/bgs_hydrogeology"
 camels_data = "./data/camels"
 ea_data = "./data/ea"
 processed_data = "./data/processed"
+figures = "outputs/figures"

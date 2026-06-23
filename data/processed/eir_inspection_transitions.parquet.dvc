@@ -1,0 +1,5 @@
+outs:
+- md5: fef0b5c926603352df2ac97be8260945
+  size: 1644574
+  hash: md5
+  path: eir_inspection_transitions.parquet

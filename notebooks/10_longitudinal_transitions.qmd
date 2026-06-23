@@ -1,0 +1,307 @@
+---
+title: "transitions"
+format: "pdf"
+enginer: knitr
+---
+
+```{r}
+library("tidyr")
+library("dplyr")
+library("ggplot2")
+library("arrow")
+```
+
+```{r}
+transitions_path <- file.path(".././data/processed/eir_inspection_transitions.parquet")
+transition_df <- arrow::read_parquet(transitions_path)
+
+dim(transition_df)
+
+```
+
+
+``` {r}
+
+covs_path <- ".././data/processed/unified_aims_eir_bgs.parquet"
+covs_df <- arrow::read_parquet(covs_path)
+
+dim(covs_df)
+```
+
+
+```{r}
+head(transition_df)
+head(covs_df)
+```
+
+
+```{r}
+transitions_full <- left_join(transition_df, covs_df, by = join_by(asset_id == aims__asset_id))
+
+head(transitions_full)
+```
+
+
+
+```{r}
+
+hist <- ggplot(data=transitions_full, aes(x=interval_years)) +
+    geom_histogram()
+
+hist
+
+```
+
+
+```{r}
+
+pairs = transitions_full %>%
+    select(grade_t0, grade_t1) %>%
+    count(grade_t0, grade_t1)
+
+pairs
+
+tm <- pairs %>%
+    ggplot(aes(grade_t0, grade_t1, fill = n)) +
+    geom_tile() +
+    scale_fill_gradient(low = "white", high = "red")
+
+tm
+
+```
+
+```{r}
+
+tm <- transitions_full %>%
+    ggplot(aes(grade_t0, grade_t1)) +
+    geom_tile() +
+    facet_wrap(vars(grade_t0))
+
+tm
+
+```
+
+
+
+```{r}
+
+obs <- transitions_full %>%
+    select(grade_t0) %>%
+    group_by(grade_t0) %>%
+    count()
+
+obs
+
+pairs = transitions_full %>%
+    select(grade_t0, grade_t1) %>%
+    count(grade_t0, grade_t1)
+
+pairs
+
+ppairs <- left_join(pairs, obs, by=join_by(grade_t0==grade_t0)) %>%
+    mutate(p = n.x / n.y)
+
+ppairs
+
+
+tm <- ppairs %>%
+    ggplot(aes(grade_t0, grade_t1, fill = p)) +
+    geom_tile() +
+    scale_fill_gradient(low = "white", high = "red")
+
+tm
+
+```
+
+
+
+
+```{r}
+
+obs <- transitions_full %>%
+    filter(round(interval_years) == 1) %>%
+    select(grade_t0) %>%
+    group_by(grade_t0) %>%
+    count()
+
+obs
+
+pairs = transitions_full %>%
+    filter(round(interval_years) == 1) %>%
+    select(grade_t0, grade_t1) %>%
+    count(grade_t0, grade_t1)
+
+pairs
+
+ppairs <- left_join(pairs, obs, by=join_by(grade_t0==grade_t0)) %>%
+    mutate(p = n.x / n.y)
+
+ppairs
+
+
+tm <- ppairs %>%
+    ggplot(aes(grade_t0, grade_t1, fill = p)) +
+    geom_tile() +
+    scale_fill_gradient(low = "white", high = "red")
+
+tm
+
+```
+
+
+
+```{r}
+
+obs <- transitions_full %>%
+    mutate(inspection_interval = round(interval_years)) %>%
+    select(grade_t0, inspection_interval) %>%
+    group_by(grade_t0, inspection_interval) %>%
+    count()
+
+obs
+
+pairs = transitions_full %>%
+    mutate(inspection_interval = round(interval_years)) %>%
+    select(grade_t0, grade_t1, inspection_interval) %>%
+    group_by(grade_t0, grade_t1, inspection_interval) %>%
+    count(grade_t0, grade_t1)
+
+pairs
+
+ppairs <- left_join(pairs, obs, by=c("grade_t0"="grade_t0", "inspection_interval"="inspection_interval")) %>%
+    mutate(p = n.x / n.y)
+
+ppairs
+
+
+tm <- ppairs %>%
+    ggplot(aes(grade_t0, grade_t1, fill = p)) +
+    geom_tile() +
+    facet_wrap(vars(inspection_interval)) +
+    scale_fill_gradient(low = "white", high = "red")
+
+tm
+
+```
+
+
+```{r}
+print(transitions_full)
+
+print(colnames(transitions_full))
+```
+
+
+```{r}
+
+transitions_full <- transitions_full %>%
+    mutate(
+        aims__asset_start_date = as.Date(aims__asset_start_date),
+        age_at_t0 = as.numeric(date_t0 - aims__asset_start_date) / 365.25,
+        age_estimated = is.na(aims__asset_start_date)
+    )
+
+band <- transitions_full %>%
+    filter(interval_years >= 0.75, interval_years <= 1.25) %>%
+    filter(!is.na(age_at_t0)) %>%
+    mutate(
+        grade_t0 = factor(grade_t0, levels = 1:5, ordered = TRUE),
+        deteriorated = delta_grade > 0
+    )
+
+
+summary <- band %>%
+    mutate(age_band = cut_width(age_at_t0, width = 5, boundary = 0)) %>%
+    group_by(grade_t0, age_band) %>%
+    summarise(
+        n=n(), p_det=mean(deteriorated), mean_delta=mean(delta_grade), age_mid=median(age_at_t0), .groups="drop"
+    ) %>%
+    filter(n >= 30)
+
+g <- summary %>%
+    ggplot(aes(age_mid, p_det)) +
+    geom_line(alpha = 0.4) +
+    geom_point(aes(size = n)) +
+    facet_wrap(~ grade_t0, labeller = label_both) +
+    scale_size_continuous(range = c(0.5, 4))
+
+g
+
+```
+
+
+
+
+
+```{r}
+
+g2 <- band %>%
+    ggplot(aes(age_at_t0, delta_grade)) +
+    geom_bin2d(binwidth=c(5,1)) +
+    geom_hline(yintercept=0)
+
+g2
+```
+
+
+```{r}
+
+g3 <- band %>%
+    ggplot(aes(age_at_t0, delta_grade)) +
+    geom_bin2d(binwidth=c(5,1)) +
+    geom_hline(yintercept=0) +
+    facet_wrap(~ grade_t0, labeller = label_both) +
+    scale_fill_gradient(low = "grey90", high = "red", trans = "log10")
+
+g3
+```
+
+
+```{r}
+
+summary(transitions_full$age_at_t0)
+
+class(transitions_full$aims__asset_start_date)
+
+
+head(transitions_full$aims__asset_start_date, 10)
+```
+
+
+```{r}
+
+# transitions_full <- transitions_full %>%
+#     mutate(
+#         .start = if_else(aims__asset_start_date < as.Date("1700-01-01"), as.Date(NA), aims__asset_start_date),
+#         age_at_t0 = as.numeric(difftime(date_t0, .start, units = "days")) / 365.25
+#     ) %>%
+#     select(-.start)
+
+# summary(transitions_full$age_at_t0)
+# sum(transitions_full$age_at_t0 < 0, na.rm = TRUE)
+
+
+class(transitions_full$date_t0)
+class(transitions_full$aims__asset_start_date)
+```
+
+```{r}
+sum(transitions_full$aims__asset_start_date < as.Date("1700-01-01"), na.rm = TRUE)
+sum(is.na(transitions_full$aims__asset_start_date))
+```
+
+```{r}
+transitions_full$.start <- transitions_full$aims__asset_start_date
+
+# transitions_full
+transitions_full$.start
+```
+
+transitions_full$.start[transitions_full$.start < as.Date("1700-01-01")] <- NA
+
+transitions_full$age_at_t0 <-
+  as.numeric(difftime(transitions_full$date_t0, transitions_full$.start, units = "days")) / 365.25
+
+transitions_full$.start <- NULL
+
+summary(transitions_full$age_at_t0)

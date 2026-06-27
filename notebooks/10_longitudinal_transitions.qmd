@@ -186,9 +186,9 @@ tm
 
 
 ```{r}
-print(transitions_full)
+# print(transitions_full)
 
-print(colnames(transitions_full))
+# print(colnames(transitions_full))
 ```
 
 

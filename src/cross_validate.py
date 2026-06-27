@@ -28,6 +28,7 @@ def cross_validate(
     cv_splitter,
     groups: np.ndarray | None = None,
     extend_func=None,
+    predict_func=None,
     compute_importance=None,
     scorers: dict | None = None,
 ) -> dict:
@@ -48,8 +49,11 @@ def cross_validate(
 
         m = clone(model)
         m.fit(X_train, y_train)
-        y_pred = m.predict(X_test)
-        y_prob = m.predict_proba(X_test)
+
+        if not predict_func:
+            y_pred = m.predict(X_test)
+        else:
+            y_pred = m.predict_func(X_test)
 
         for name, scorer in scorers.items():
             fold_scores[name].append(scorer(y_test, y_pred))

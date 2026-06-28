@@ -1,36 +1,50 @@
+from dataclasses import dataclass
+from typing import Any, Callable
+
 import numpy as np
-from sklearn.base import clone
-from sklearn.metrics import (
-    r2_score,
-    mean_squared_error,
-    mean_absolute_error,
-    f1_score,
-    precision_recall_curve,
-    auc,
-)
 from sklearn.cluster import KMeans
-from scipy.stats import spearmanr
-from functools import partial
+from sklearn.metrics import f1_score, mean_absolute_error
+
+
+@dataclass
+class Predictions:
+    label: np.ndarray
+    proba: np.ndarray | None = None
+    classes: np.ndarray | None = None
+    score: np.ndarray | None = None
+
+
+# need default functions for the args of the main function, lets the user specify a different method than .fit if using a non sklear api
+def default_fit(model: Any, X: np.ndarray, y: np.ndarray) -> Any:
+    model.fit(X, y)
+    return model
+
+
+def default_predict(model: Any, X: np.ndarray) -> Predictions:
+    proba = model.predict_proba(X) if hasattr(model, "predict_proba") else None
+    return Predictions(
+        label=model.predict(X),
+        proba=proba,
+        classes=getattr(model, "classes_", None),
+    )
 
 
 DEFAULT_SCORERS = {
-    "mae": mean_absolute_error,
-    "rmse": lambda y_true, y_pred: np.sqrt(mean_squared_error(y_true, y_pred)),
-    "spearman": lambda y_true, y_pred: spearmanr(y_true, y_pred).statistic,  # type: ignore
-    "f1_score": partial(f1_score, average="macro"),
+    "mae": lambda y, p: mean_absolute_error(y, p.label),
+    "macro_f1": lambda y, p: f1_score(y, p.label, average="macro"),
 }
 
 
 def cross_validate(
+    make_model: Callable[[], Any],
     X: np.ndarray,
     y: np.ndarray,
-    model,
     cv_splitter,
     groups: np.ndarray | None = None,
-    extend_func=None,
-    predict_func=None,
-    compute_importance=None,
     scorers: dict | None = None,
+    fit_fn: Callable[[Any, np.ndarray, np.ndarray], Any] = default_fit,
+    predict_fn: Callable[[Any, np.ndarray], Any] = default_predict,
+    compute_importance=None,
 ) -> dict:
     if scorers is None:
         scorers = DEFAULT_SCORERS
@@ -41,26 +55,15 @@ def cross_validate(
     split_args = (X, y, groups) if groups is not None else (X, y)
 
     for train_idx, test_idx in cv_splitter.split(*split_args):
-        X_train, X_test = X[train_idx], X[test_idx]
-        y_train, y_test = y[train_idx], y[test_idx]
-
-        if extend_func is not None:
-            X_train, X_test = extend_func(X_train, X_test, train_idx, test_idx)
-
-        m = clone(model)
-        m.fit(X_train, y_train)
-
-        if not predict_func:
-            y_pred = m.predict(X_test)
-        else:
-            y_pred = m.predict_func(X_test)
+        model = fit_fn(make_model(), X[train_idx], y[train_idx])
+        preds = predict_fn(model, X[test_idx])
+        y_test = y[test_idx]
 
         for name, scorer in scorers.items():
-            fold_scores[name].append(scorer(y_test, y_pred))
-            # todo some scorers take y_prob instead of y_pred. I need to find a way of routing the correct argument to each function, even if the scorers dict is user defined and passed in at runtime
+            fold_scores[name].append(scorer(y_test, preds))
 
         if compute_importance is not None:
-            importance_per_fold.append(compute_importance(m))
+            importance_per_fold.append(compute_importance(model))
 
     results = {}
     for name, scores in fold_scores.items():

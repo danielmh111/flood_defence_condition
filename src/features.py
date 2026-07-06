@@ -84,7 +84,7 @@ def prepare_features(
         pl.col("eir__inspection_date").cast(pl.Date) - pl.col("aims__asset_start_date")
     ).dt.total_days() / 365.25
     df = df.with_columns(
-        # design_sop: strip out 9999/10000 suspicious values, make null
+        # design_sop - strip out 9999/10000 suspicious values, make null
         pl.when(pl.col("aims__design_sop").is_in(SOP_SENTINELS))
         .then(None)
         .otherwise(pl.col("aims__design_sop"))

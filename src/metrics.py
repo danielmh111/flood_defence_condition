@@ -5,6 +5,7 @@ from sklearn.metrics import (
     f1_score,
     mean_absolute_error,
     recall_score,
+    precision_score,
 )
 from functools import partial
 
@@ -40,6 +41,23 @@ def recall_for_grade(grade):
     return partial(_recall_scorer, grade=grade)
 
 
+def _precision_scorer(y, predictions: Predictions, grade):
+    y = np.asarray(y)
+
+    if not np.any(y == grade):
+        return float("nan")  # if class absent in this test fold then score is undefined
+
+    return float(
+        precision_score(
+            y, predictions.label, labels=[grade], average="macro", zero_division=0
+        )
+    )
+
+
+def precision_for_grade(grade):
+    return partial(_precision_scorer, grade=grade)
+
+
 def pr_auc_ge4(y, predictions: Predictions):
     """
     average precision for detecting grade >= 4.
@@ -72,6 +90,10 @@ def build_scorers() -> dict:
         "qwk": quad_weighted_cohen_kappa,
         "pr_auc_ge4": pr_auc_ge4,
         **{f"recall_for_grade_{grade}": recall_for_grade(grade) for grade in GRADES},
+        **{
+            f"precision_for_grade_{grade}": precision_for_grade(grade)
+            for grade in GRADES
+        },
     }
 
     return scorers

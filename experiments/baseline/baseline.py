@@ -128,12 +128,12 @@ def main(parquet=PARQUET, gpkg=GPKG, n_blocks=N_BLOCKS, n_splits=N_SPLITS, seed=
     assert df_feats["condition_grade"].is_between(1, 5).all()
     assert df_feats["asset_length_log1p"].is_finite().all()
 
-    full = [
-        *NOMINAL_CATEGORY_COLS,
-        *GEOSURE_COLS,
-        "maintainer_is_ea",
-        "asset_length_log1p",
-    ]
+    # full = [
+    #     *NOMINAL_CATEGORY_COLS,
+    #     *GEOSURE_COLS,
+    #     "maintainer_is_ea",
+    #     "asset_length_log1p",
+    # ]
 
     # todo - i thought this assert was proven to pass in eda but is failing here. Either im wrong or the data has changed or the eda is wrong. should investigate, but doesn't break this script as model will tolerate the nulls
     # assert df_feats.select(full).null_count().to_numpy().sum() == 0, (
@@ -183,16 +183,22 @@ def main(parquet=PARQUET, gpkg=GPKG, n_blocks=N_BLOCKS, n_splits=N_SPLITS, seed=
 
 def log_results(rows):
 
+    experiment_name = "baseline_1"
+    description = "first implementation of baseline model compared to two dummy classifiers - one constantly predicting the median and one stratified using distribution of classes in the data. The main purpose of this experiment was to check that all the code ran without bugs and the approach was good."
+
     results = paths.experiments / "baseline/results.jsonl"
     data = json.dumps(
         {
             "run_id": str(uuid4()),
             "run_at": datetime.now().strftime(format="%Y-%m-%d %H:%M:%S"),
+            "name": experiment_name,
+            "description": description,
             "results": rows,
         }
     )
 
-    results.write_text(data=data)
+    with results.open(mode="a") as file:
+        file.write(data + "\n")
 
 
 if __name__ == "__main__":

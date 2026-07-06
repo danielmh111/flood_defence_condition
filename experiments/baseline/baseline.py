@@ -95,28 +95,22 @@ def make_models(cat_idx) -> dict:
     return {
         "median": lambda: DummyClassifier(strategy="constant", constant=3),
         "stratified": lambda: DummyClassifier(strategy="stratified", random_state=SEED),
-        "hgb": lambda: HistGradientBoostingClassifier(
+        "hgb_unbalanced": lambda: HistGradientBoostingClassifier(
             categorical_features=cat_idx,
             learning_rate=0.05,
             max_iter=400,
             early_stopping=True,
             random_state=SEED,
         ),
+        "hgb_balanced": lambda: HistGradientBoostingClassifier(
+            categorical_features=cat_idx,
+            learning_rate=0.05,
+            max_iter=400,
+            early_stopping=True,
+            random_state=SEED,
+            class_weight="balanced",
+        ),
     }
-
-
-def balanced_fit(model, X, y):
-    """
-    only balance the real model, not the dummies.
-    Balance would have no affect on the median dummy predictor,
-    and would break the from distibution stratified one
-    """
-
-    if isinstance(model, HistGradientBoostingClassifier):
-        model.fit(X, y, sample_weight=compute_sample_weight("balanced", y))
-    else:
-        model.fit(X, y)
-    return model
 
 
 def main(parquet=PARQUET, gpkg=GPKG, n_blocks=N_BLOCKS, n_splits=N_SPLITS, seed=SEED):
@@ -156,7 +150,6 @@ def main(parquet=PARQUET, gpkg=GPKG, n_blocks=N_BLOCKS, n_splits=N_SPLITS, seed=
             cv_splitter=splitter,
             groups=blocks,
             scorers=scorers,
-            fit_fn=balanced_fit,
         )
         results[name] = result
         means = report_means(result)
@@ -183,8 +176,8 @@ def main(parquet=PARQUET, gpkg=GPKG, n_blocks=N_BLOCKS, n_splits=N_SPLITS, seed=
 
 def log_results(rows):
 
-    experiment_name = "baseline_1"
-    description = "first implementation of baseline model compared to two dummy classifiers - one constantly predicting the median and one stratified using distribution of classes in the data. The main purpose of this experiment was to check that all the code ran without bugs and the approach was good."
+    experiment_name = "baseline_2"
+    description = "implementation of baseline model compared to two dummy classifiers - one constantly predicting the median and one stratified using distribution of classes in the data. The main purpose of this experiment was to check that all the code ran without bugs and the approach was good. In this second iteration, both a balanced and unbalanced hgb model are provided to see if balancing is inflating the pr auc (run one showed some skill gained over the dummies, could just be because it is making a balanced prediction)"
 
     results = paths.experiments / "baseline/results.jsonl"
     data = json.dumps(

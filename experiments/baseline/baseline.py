@@ -31,6 +31,9 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.utils.class_weight import compute_sample_weight
 from pathlib import Path
+import json
+from uuid import uuid4
+from datetime import datetime
 
 from src.cross_validate import cross_validate, produce_spatial_blocks
 from src.features import (
@@ -173,7 +176,23 @@ def main(parquet=PARQUET, gpkg=GPKG, n_blocks=N_BLOCKS, n_splits=N_SPLITS, seed=
         print(table)
     print("\n")
 
+    log_results(rows)
+
     return table, results
+
+
+def log_results(rows):
+
+    results = paths.experiments / "baseline/results.jsonl"
+    data = json.dumps(
+        {
+            "run_id": str(uuid4()),
+            "run_at": datetime.now().strftime(format="%Y-%m-%d %H:%M:%S"),
+            "results": rows,
+        }
+    )
+
+    results.write_text(data=data)
 
 
 if __name__ == "__main__":

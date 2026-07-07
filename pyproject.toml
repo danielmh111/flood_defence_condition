@@ -26,6 +26,7 @@ dependencies = [
     "scikit-learn>=1.9.0",
     "scipy>=1.17.1",
     "seaborn>=0.13.2",
+    "shap>=0.52.0",
     "shapely>=2.1.2",
     "umap-learn>=0.5.12",
 ]
@@ -45,3 +46,4 @@ ea_data = "./data/ea"
 processed_data = "./data/processed"
 figures = "outputs/figures"
 experiments = "./experiments"
+baseline_experiments = "./experiments/baseline"

@@ -1,0 +1,5 @@
+outs:
+- md5: cffcfcac4a5d880e29b37fdf9484ff87
+  size: 13626709
+  hash: md5
+  path: asset_coordinates.csv

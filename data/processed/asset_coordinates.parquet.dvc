@@ -1,0 +1,5 @@
+outs:
+- md5: ac23a37869dfd2962bf3f5ffa7eafcfe
+  size: 6140830
+  hash: md5
+  path: asset_coordinates.parquet

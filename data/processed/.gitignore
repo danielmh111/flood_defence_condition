@@ -1,3 +1,8 @@
 /unified_aims_eir_bgs.parquet
 /graded_assets.gpkg
 /eir_inspection_transitions.parquet
+/filtered_assets_for_heuristics_df.joblib
+/asset_coordinates.csv
+/asset_coordinates.parquet
+/assets_for_heuristics_df.joblib
+/local_assets_export.csv

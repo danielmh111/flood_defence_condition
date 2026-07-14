@@ -1,0 +1,5 @@
+outs:
+- md5: 2ef64818704118371750e1d2ce6e4f6c
+  size: 72219669
+  hash: md5
+  path: assets_for_heuristics_df.joblib

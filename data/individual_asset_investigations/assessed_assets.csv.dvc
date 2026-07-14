@@ -1,0 +1,5 @@
+outs:
+- md5: 20b088a361db73c5eef0b86076e138f5
+  size: 13534
+  hash: md5
+  path: assessed_assets.csv

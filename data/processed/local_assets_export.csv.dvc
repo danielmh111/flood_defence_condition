@@ -1,0 +1,5 @@
+outs:
+- md5: 54f9960ecad7ed058f79e4c11bd3ee28
+  size: 50269
+  hash: md5
+  path: local_assets_export.csv

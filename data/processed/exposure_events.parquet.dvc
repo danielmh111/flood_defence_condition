@@ -1,0 +1,5 @@
+outs:
+- md5: 03ff94526ce01a52a7e6129ffc315f95
+  size: 568372
+  hash: md5
+  path: exposure_events.parquet

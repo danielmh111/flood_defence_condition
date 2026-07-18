@@ -1,0 +1,5 @@
+outs:
+- md5: 464bcbd5ad00d4480bbec5affa2f218b
+  size: 911778
+  hash: md5
+  path: exposure_features.parquet

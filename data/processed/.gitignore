@@ -14,3 +14,5 @@
 /climate_features.parquet
 /climate_cell_normals_5000m.parquet
 /climate_cell_monthly_temp_5000m.parquet
+/lidar_features.parquet
+/lidar_stations.parquet

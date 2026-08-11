@@ -1,0 +1,5 @@
+outs:
+- md5: acb2493dd3a766bc1d161d7b0f556aa1
+  size: 21532475
+  hash: md5
+  path: lidar_stations.parquet

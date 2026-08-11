@@ -1,0 +1,6 @@
+outs:
+- md5: ad94cc948d5f1ffea83064468d4e743f.dir
+  size: 16110605584
+  nfiles: 23264
+  hash: md5
+  path: dtm_windows

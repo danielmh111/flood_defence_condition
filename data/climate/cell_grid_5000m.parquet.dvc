@@ -1,0 +1,5 @@
+outs:
+- md5: 06433f15a1e3ec5def5e48e79c6b6bc6
+  size: 15101
+  hash: md5
+  path: cell_grid_5000m.parquet

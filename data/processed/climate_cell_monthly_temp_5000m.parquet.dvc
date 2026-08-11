@@ -1,0 +1,5 @@
+outs:
+- md5: 28be9ae509b1bbd71c3bcdc508e97c79
+  size: 698705
+  hash: md5
+  path: climate_cell_monthly_temp_5000m.parquet

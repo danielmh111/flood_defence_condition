@@ -1,0 +1,5 @@
+outs:
+- md5: cc43cfd81700f28e14640fd87ec6e97e
+  size: 336307
+  hash: md5
+  path: climate_cell_annual_rain_5000m.parquet

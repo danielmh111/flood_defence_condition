@@ -8,3 +8,9 @@
 /local_assets_export.csv
 /exposure_events.parquet
 /exposure_features.parquet
+/climate_cell_annual_rain_5000m.parquet
+/climate_cell_monthly_rain_5000m.parquet
+/climate_manifest.json
+/climate_features.parquet
+/climate_cell_normals_5000m.parquet
+/climate_cell_monthly_temp_5000m.parquet

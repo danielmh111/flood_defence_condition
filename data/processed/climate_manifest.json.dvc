@@ -1,0 +1,5 @@
+outs:
+- md5: 0db8d2c172fb31d65f881bc45aaea463
+  size: 186
+  hash: md5
+  path: climate_manifest.json

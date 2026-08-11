@@ -1,0 +1,5 @@
+outs:
+- md5: 79ecabaeb528a75ef8f121531dcfd527
+  size: 95145
+  hash: md5
+  path: climate_cell_normals_5000m.parquet

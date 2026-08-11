@@ -1,0 +1,5 @@
+outs:
+- md5: ba57a8b1733bc80b17d0b6b963d0eeef
+  size: 1639
+  hash: md5
+  path: oversize_assets.parquet

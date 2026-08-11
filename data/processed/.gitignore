@@ -16,3 +16,4 @@
 /climate_cell_monthly_temp_5000m.parquet
 /lidar_features.parquet
 /lidar_stations.parquet
+/heuristic_national.parquet

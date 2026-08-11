@@ -1,0 +1,5 @@
+outs:
+- md5: dea58da5ab7784ff9bfd683488d8fb91
+  size: 73544
+  hash: md5
+  path: heuristic_national.parquet

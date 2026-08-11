@@ -1,0 +1,5 @@
+outs:
+- md5: 215c250b7f4ab47d0370a9d2a22c93a2
+  size: 67612
+  hash: md5
+  path: folds.parquet

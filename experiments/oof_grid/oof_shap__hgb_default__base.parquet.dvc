@@ -1,0 +1,5 @@
+outs:
+- md5: 3b2f50b47fc19d015f8e9719ba57b6c2
+  size: 11294075
+  hash: md5
+  path: oof_shap__hgb_default__base.parquet

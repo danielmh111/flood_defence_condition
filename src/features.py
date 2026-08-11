@@ -131,6 +131,26 @@ def prepare_features(
     )
 
 
+def create_arrays(df: pl.DataFrame):
+    """take the typed dataframe and turn it into the necessary arrays of features, tagets, indexs, and ids"""
+
+    feature_cols = [
+        col for col in df.columns if col not in ("asset_id", "condition_grade")
+    ]
+    X_df = df.select(feature_cols)
+
+    enum_cols = [col for col, datatype in X_df.schema.items() if datatype == pl.Enum]
+    cat_idx = [i for i, col in enumerate(feature_cols) if col in enum_cols]
+
+    X_df = X_df.with_columns(pl.col(enum_cols).to_physical())  # Enum cast to int codes
+    X = X_df.to_numpy().astype("float64")  # null cast to numpy nan
+
+    y = df["condition_grade"].to_numpy().astype(int)
+    asset_ids = df["asset_id"].to_numpy()
+
+    return X, y, cat_idx, asset_ids
+
+
 # --- intended CALL-SITE asserts (belong in the materialisation script, not here) --
 #
 #   out = prepare_features(df)

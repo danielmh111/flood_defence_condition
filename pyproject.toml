@@ -32,6 +32,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "shap>=0.52.0",
     "shapely>=2.1.2",
+    "threadpoolctl>=3.6.0",
     "umap-learn>=0.5.12",
     "xarray>=2026.7.0",
 ]

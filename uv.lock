@@ -514,6 +514,7 @@ dependencies = [
     { name = "seaborn" },
     { name = "shap" },
     { name = "shapely" },
+    { name = "threadpoolctl" },
     { name = "umap-learn" },
     { name = "xarray" },
 ]
@@ -546,6 +547,7 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "shap", specifier = ">=0.52.0" },
     { name = "shapely", specifier = ">=2.1.2" },
+    { name = "threadpoolctl", specifier = ">=3.6.0" },
     { name = "umap-learn", specifier = ">=0.5.12" },
     { name = "xarray", specifier = ">=2026.7.0" },
 ]

@@ -84,16 +84,23 @@ def make_tree_shap_fn(
     feature_names: Sequence[str],
     grades: Sequence[int] = GRADES,
     max_rows_per_fold: int | None = None,
+    seed: int = 123,
 ) -> ShapFn:
-    """binds feature_names (and an optional smoke-test row cap) into run_oof's 4-positional
+    """binds feature_names (and an optional per-fold row cap) into run_oof's 4-positional
     (model, X_test, asset_ids, fold) -> pl.DataFrame shap_fn signature.
+
+    the cap samples rather than slices: a positional head correlates with whatever order assets
+    arrive in. the generator is seeded per fold, so the sampled rows are reproducible and identical
+    across every cell scored on the same folds.
     """
     names = list(feature_names)
 
     def shap_fn(model, X_test: np.ndarray, asset_ids: np.ndarray, fold: int) -> pl.DataFrame:
-        if max_rows_per_fold is not None:
-            X_test = X_test[:max_rows_per_fold]
-            asset_ids = asset_ids[:max_rows_per_fold]
+        if max_rows_per_fold is not None and len(asset_ids) > max_rows_per_fold:
+            take = np.random.default_rng([seed, fold]).choice(
+                len(asset_ids), max_rows_per_fold, replace=False
+            )
+            X_test, asset_ids = X_test[take], asset_ids[take]
         return tree_shap_frame(
             model, X_test, asset_ids, fold, feature_names=names, grades=grades
         )

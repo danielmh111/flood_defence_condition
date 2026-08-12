@@ -1,0 +1,6 @@
+outs:
+- md5: 34b171aae82ac30a2f86106692559d28.dir
+  size: 80614136
+  nfiles: 8820
+  hash: md5
+  path: shap_agg

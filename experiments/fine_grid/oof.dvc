@@ -1,0 +1,6 @@
+outs:
+- md5: 2bbc4e2333c41f112f7cf253b7410879.dir
+  size: 3953311077
+  nfiles: 8823
+  hash: md5
+  path: oof

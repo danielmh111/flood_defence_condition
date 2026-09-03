@@ -1,5 +1,5 @@
 # coarse grid: 5 feature sets x 50 configs + 3 reference cells, flat. every cell is one
-# independent 10-fold spatially blocked OOF pass through run_oof. folds are built exactly as in
+# independent 10 fold spatially blocked OOF pass through run_oof. folds are built exactly as in
 # oof_grid (KMeans blocks seed 123, StratifiedGroupKFold seed 123) so results pair with it.
 #
 # artefacts, one file per cell keyed by cell_id:
@@ -9,7 +9,7 @@
 #   shap_full/{cell_id}.parquet  per-row wide shap, reference config only
 #   results.jsonl                run header, one line per completed cell, footer
 #
-# resume: a cell whose oof parquet exists is skipped. cancel with ctrl-c, edit the grid, rerun.
+# resume: a cell whose oof parquet exists is skipped. so can cancel, edit the grid, rerun.
 #
 # the grid, fold count, block count and seed are fixed by the experiment design (spec 5 and 7),
 # not runtime parameters - a run that could be pointed at a different grid would not be the
@@ -168,7 +168,9 @@ def build_folds(asset_ids, X, y, coords, out_dir: Path, n_splits: int):
 
 def main(smoke: bool = False) -> None:
     if "max_features" not in HistGradientBoostingClassifier().get_params():
-        raise ValueError("scikit-learn is too old - HGB has no max_features (needs >= 1.4)")
+        raise ValueError(
+            "scikit-learn is too old - HGB has no max_features (needs >= 1.4)"
+        )
 
     # smoke writes to its own directory so its 2-fold folds.parquet can never collide with the
     # real run's, which would trip the fold gate
@@ -180,7 +182,9 @@ def main(smoke: bool = False) -> None:
     for sub in ("oof", "shap_agg", "shap_full"):
         (out_dir / sub).mkdir(parents=True, exist_ok=True)
 
-    df_joined, coverage = attach_blocks(load_frame(PARQUET), CLIMATE_PARQUET, LIDAR_PARQUET)
+    df_joined, coverage = attach_blocks(
+        load_frame(PARQUET), CLIMATE_PARQUET, LIDAR_PARQUET
+    )
     matrices, names_by_set, cat_idx_by_set, y, asset_ids = build_all(df_joined)
 
     logger.info(f"loaded {len(y)} assets")
@@ -190,7 +194,12 @@ def main(smoke: bool = False) -> None:
         logger.info(f"  coverage {col}: {coverage[col]:.1%}")
 
     fold_id = build_folds(
-        asset_ids, matrices["identity"], y, load_coords(asset_ids, GPKG), out_dir, n_splits
+        asset_ids,
+        matrices["identity"],
+        y,
+        load_coords(asset_ids, GPKG),
+        out_dir,
+        n_splits,
     )
 
     heuristic_X, heuristic_coverage = None, None
@@ -201,11 +210,15 @@ def main(smoke: bool = False) -> None:
         logger.info(f"heuristic_national skipped - {HEURISTIC_PARQUET} not found")
 
     configs = sample_configs(n=n_configs)
-    cells = build_cells(cat_idx_by_set, configs, include_heuristic=heuristic_X is not None)
+    cells = build_cells(
+        cat_idx_by_set, configs, include_heuristic=heuristic_X is not None
+    )
 
     done = {p.stem for p in (out_dir / "oof").glob("*.parquet")}
     todo = [c for c in cells if c.cell_id not in done]
-    logger.info(f"{len(cells)} cells total, {len(done)} already complete, {len(todo)} to run")
+    logger.info(
+        f"{len(cells)} cells total, {len(done)} already complete, {len(todo)} to run"
+    )
 
     run_id = str(uuid4())
     append_result(
@@ -237,7 +250,10 @@ def main(smoke: bool = False) -> None:
         if spec.model == "heuristic_national":
             X, names = heuristic_X, ["heuristic_pred_grade"]
         elif spec.feature_set is None:
-            X, names = matrices["identity"], names_by_set["identity"]  # dummies ignore X
+            X, names = (
+                matrices["identity"],
+                names_by_set["identity"],
+            )  # dummies ignore X
         else:
             X, names = matrices[spec.feature_set], names_by_set[spec.feature_set]
 

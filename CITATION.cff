@@ -1,0 +1,24 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: flood_defence_condition
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Daniel Martin
+    family-names: Hill
+    email: danielmartinhill@gmail.com
+    name-particle: Daniel
+identifiers:
+  - type: url
+    value: 'https://github.com/danielmh111/flood_defence_condition'
+    description: github repository url
+abstract: >-
+  Code repository containing machine learning research
+  pipeline. Processes data, extracts features, trains and
+  evaluates models predicting the condition grade of flood
+  defence assets in England.
+license: MIT

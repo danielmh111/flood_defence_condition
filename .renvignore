@@ -1,0 +1,9 @@
+experiments/
+outputs/
+notebooks/*.ipynb
+data/
+src/
+_book/
+.quarto/
+_freeze/
+renv/library/

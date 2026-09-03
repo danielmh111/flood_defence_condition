@@ -1,0 +1,5 @@
+outs:
+- md5: dbc2af2b3e0e55847747ef1fd01f87b6
+  size: 1430124
+  hash: md5
+  path: fold_metrics.parquet

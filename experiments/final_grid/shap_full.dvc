@@ -1,0 +1,6 @@
+outs:
+- md5: f17045b449794b74068c480ec8e996c9.dir
+  size: 17613135
+  nfiles: 2
+  hash: md5
+  path: shap_full

@@ -1,0 +1,6 @@
+/fold_metrics.parquet
+/folds.parquet
+/meta
+/oof
+/shap_agg
+/shap_full

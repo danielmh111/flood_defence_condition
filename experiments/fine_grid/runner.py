@@ -1,3 +1,7 @@
+"""
+AI was used in this experimnt to test and debug. It has also drafted the experiment explaination and run instructions below, which were checked before including
+"""
+
 # fine grid: 14 compositions x 630 configs + 3 reference cells, flat. every cell is one independent
 # 10-fold spatially blocked OOF pass through run_oof. folds are built exactly as in coarse_grid
 # (KMeans blocks seed 123, StratifiedGroupKFold seed 123) so results pair with it.

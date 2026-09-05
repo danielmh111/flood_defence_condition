@@ -1,52 +1,58 @@
 # Flood defence condition grading
 
-MSc research code. Predicts Environment Agency flood defence condition grades (1-5) with machine
-learning, and compares that against the Halcrow heuristic deterioration curves.
+This is the code artifact for my MSc Final project - predicting Environment Agency flood defence condition grades with machine learning, and comparing them against Halcrow condition deterioration curves.
 
-Python does the data work and the modelling. R is used inside Quarto documents for some of the
-plots and statistical output, with Parquet as the handoff between the two.
+This repo contains dvc reciepts to raw and processed data, so transfer is easy when requested. 
+
+This repo contains notebooks for original EDA, source code for repeated data preperation, modelling, and evaluation processes, notebooks for investigating the heuristics, experiments for training models, and notebooks to evaluate the results. 
+
+```
+src/            shared modelling code
+experiments/    one package per experiment, plus its outputs
+notebooks/      numbered analysis, .ipynb plus a couple of R .qmd
+report/         Quarto book
+scripts/        one off feature builds and checks
+data/           DVC tracked, not in the repo
+```
+
+The project has been given an MIT licence, making reproduction and extention free and unrestricted. 
+
+Python is used for the data work and the modelling. R is used inside Quarto documents for some of the plots and statistical output, with Parquet files as handoffs between the two.
 
 ## Environments
 
-Two separate environments, each with its own lockfile. Both are committed, so an install should
-reproduce exactly what was used for the results.
+Two separate environments, each with its own lockfile. Both are committed, so an install should reproduce exactly what was used for the results.
 
 ### Python
 
-Managed with [uv](https://docs.astral.sh/uv/). `pyproject.toml` holds the dependency ranges,
-`uv.lock` pins the resolved versions, and `.python-version` pins Python itself (3.13).
+Managed with [uv](https://docs.astral.sh/uv/). `pyproject.toml` holds the dependency ranges and `uv.lock` pins the resolved versions, and `.python-version` pins Python to 3.13.
 
 ```
 uv sync
 ```
 
-That creates `.venv` and installs everything from the lock. Run things through `uv run` rather
-than activating the venv:
+That creates `.venv` and installs everything from the lock. Run things through `uv run` rather than activating the venv:
 
 ```
-uv run python -m experiments.final_grid.runner
+uv run python -m experiments.final_grid.runner.py
 ```
 
-To add a package use `uv add polars` (or `uv add --dev nbdime` for tooling), which updates both
-the pyproject and the lock. Editing `pyproject.toml` by hand then running `uv sync` works too.
+To add a package use `uv add polars`, which updates both the pyproject and the lock. Editing `pyproject.toml` by hand then running `uv sync` works too.
 `uv lock --upgrade` re-resolves everything, which is worth avoiding mid-experiment.
 
-The project itself is installed in editable mode, which is what makes `from src... import` work
-from anywhere in the repo.
+The project itself is installed in editable mode, which is what makes `from src... import` work from anywhere in the repo.
 
-`pyproject.toml` also carries a `[tool.project-paths]` table. Those are read by `project_paths`
-and are how the code finds data and output directories, rather than hardcoding relative paths:
+`pyproject.toml` also carries a `[tool.project-paths]` table. Those are read by `project_paths` and are how the code finds data and output directories, rather than hardcoding relative paths:
 
 ```python
 from project_paths import paths
+
 paths.processed_data / "unified_aims_eir_bgs.parquet"
 ```
 
 ### R
 
-Managed with [renv](https://rstudio.github.io/renv/). `renv.lock` pins the package versions
-against R 4.4.1, and `.Rprofile` activates the project library whenever R starts in this
-directory.
+Managed with [renv](https://rstudio.github.io/renv/). `renv.lock` pins the package versions against R 4.4.1, and `.Rprofile` activates the project library whenever R starts in this directory.
 
 Open R in the repo root and run:
 
@@ -54,17 +60,11 @@ Open R in the repo root and run:
 renv::restore()
 ```
 
-Then rendering the Quarto documents (`quarto render report`, or a single `.qmd`) picks the
-packages up automatically. renv only tracks packages it can see being used, so after adding a
-`library()` call somewhere run `renv::snapshot()` to update the lock. `.renvignore` keeps it out
-of `src/`, `experiments/`, `data/` and the `.ipynb` notebooks, so it only scans the `.qmd` files
-and does not try to resolve Python imports as R packages.
+Then rendering the Quarto documents (`quarto render report`, or a single `.qmd`) picks the packages up automatically. renv only tracks packages it can see being used, so after adding a `library()` call somewhere run `renv::snapshot()` to update the lock. `.renvignore` keeps it out of `src/`, `experiments/`, `data/` and the `.ipynb` notebooks, so it only scans the `.qmd` files and does not try to resolve Python imports as R packages.
 
 ### Data
 
-Data files are tracked with DVC rather than git, and are not in the repo. Most of it is open
-(AIMS, EIR, BGS), but the joined `data/processed/unified_aims_eir_bgs.parquet` is what nearly
-everything downstream reads.
+Data files are tracked with DVC rather than git, and are not in the repo. Most of it is open (AIMS, EIR, BGS), but the joined `data/processed/unified_aims_eir_bgs.parquet` is what nearly everything downstream reads.
 
 ## Running an experiment
 
@@ -87,13 +87,9 @@ meta/{cell_id}.json         per cell record
 runs.jsonl                  one line per invocation
 ```
 
-Writes are atomic and a cell whose output already exists is skipped, so a run can be interrupted
-and restarted without losing what it had finished. Deleting the output directory forces a clean
-run.
+A cell whose output already exists is skipped, so a run can be interrupted and restarted without losing what it had finished. Deleting the output directory forces a clean run.
 
-No metrics are computed during the run. Everything scored comes from the OOF probabilities
-afterwards, in the numbered notebook that matches the experiment (`21_final_grid_experiment_results.ipynb`
-for `final_grid`), loading through that experiment's `reporting.py`.
+No metrics are computed during the run. Everything scored comes from the OOF probabilities afterwards, in the numbered notebook that matches the experiment(`21_final_grid_experiment_results.ipynb` for `final_grid`)
 
 ## Writing a new experiment
 
@@ -118,19 +114,3 @@ The usual shape of a new experiment is a package with `features.py`, `models.py`
 
 `experiments/baseline/baseline.py` is the smallest example and a reasonable starting point.
 `experiments/final_grid/` is the fullest one, with parallelism, resume and SHAP.
-
-Two things worth keeping in any new experiment. Check `LEAKY_COLS` against the frame before
-fitting anything - several columns are downstream of the inspection that produced the label.
-And build folds once and save them, so cells within an experiment (and across experiments, given
-the same seed and asset set) are paired rather than merely similar.
-
-## Layout
-
-```
-src/            shared modelling code
-experiments/    one package per experiment, plus its outputs
-notebooks/      numbered analysis, .ipynb plus a couple of R .qmd
-report/         Quarto book
-scripts/        one off feature builds and checks
-data/           DVC tracked, not in the repo
-```

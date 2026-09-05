@@ -15,7 +15,7 @@ scripts/        one off feature builds and checks
 data/           DVC tracked, not in the repo
 ```
 
-The project has been given an MIT licence, making reproduction and extention free and unrestricted. 
+The project has been given an MIT licence, making reproduction and extention free and unrestricted. Please ask for specific data when required - the total amount is above the dagshub free tier amount. The only data source not available publically is the EA's EIR response - this has been added to git tracking and can be pulled from github.
 
 Python is used for the data work and the modelling. R is used inside Quarto documents for some of the plots and statistical output, with Parquet files as handoffs between the two.
 

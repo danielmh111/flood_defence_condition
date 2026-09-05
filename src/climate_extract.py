@@ -1,11 +1,9 @@
-"""Stage 1 - reduce the per-cell daily cache (src/climate_fetch.py) to monthly-additive
-and annual run-length metrics. Pure Polars over the cache; cheap to re-run when a metric
-definition changes, which is the point of persisting the daily series (design doc §8).
+"""
+Next stage in climate feature extraction after climate_fetch and before climate_aggregate
+reduce the per cell daily cache to monthly and annual metrics using polars transformations
+cheap to re-run when a metric definition changes, which is the point of persisting the daily series
 
-ftc/fdd live in "temp" cell-id space (tasmin+tasmax); drydays/r10mm/r20mm/dryspell*/
-rewet_15/rain_max_day live in "rain" cell-id space (rainfall). METRIC_GROUP records which,
-since climate_aggregate.py must join each metric's normals/monthly frame on the matching
-cell_id_{group} column from cells_{res}m.parquet.
+AI has been used to test and debug this code
 """
 
 import calendar
@@ -17,7 +15,10 @@ from project_paths import paths
 
 from src.climate_fetch import CACHE_DIR, RESOLUTION_M
 
-NORMAL_START, NORMAL_END = 1991, 2020  # WMO standard period; inside the FETCH_START floor
+NORMAL_START, NORMAL_END = (
+    1991,
+    2020,
+)  # WMO standard period; inside the FETCH_START floor
 
 ADDITIVE_METRICS_TEMP = ["ftc", "fdd"]
 ADDITIVE_METRICS_RAIN = ["drydays", "r10mm", "r20mm"]
@@ -36,9 +37,15 @@ METRIC_GROUP = {
     **{m: "rain" for m in ANNUAL_METRICS_RAIN},
 }
 
-MONTHLY_TEMP_PATH = paths.processed_data / f"climate_cell_monthly_temp_{RESOLUTION_M}m.parquet"
-MONTHLY_RAIN_PATH = paths.processed_data / f"climate_cell_monthly_rain_{RESOLUTION_M}m.parquet"
-ANNUAL_RAIN_PATH = paths.processed_data / f"climate_cell_annual_rain_{RESOLUTION_M}m.parquet"
+MONTHLY_TEMP_PATH = (
+    paths.processed_data / f"climate_cell_monthly_temp_{RESOLUTION_M}m.parquet"
+)
+MONTHLY_RAIN_PATH = (
+    paths.processed_data / f"climate_cell_monthly_rain_{RESOLUTION_M}m.parquet"
+)
+ANNUAL_RAIN_PATH = (
+    paths.processed_data / f"climate_cell_annual_rain_{RESOLUTION_M}m.parquet"
+)
 NORMALS_PATH = paths.processed_data / f"climate_cell_normals_{RESOLUTION_M}m.parquet"
 
 
@@ -50,11 +57,15 @@ def load_daily(var: str) -> pl.DataFrame:
     var_dir = CACHE_DIR / var
     frames = [pl.read_parquet(p) for p in sorted(var_dir.glob("*.parquet"))]
     if not frames:
-        raise ExtractError(f"no cached daily data for {var} in {var_dir} - run climate_fetch first")
+        raise ExtractError(
+            f"no cached daily data for {var} in {var_dir} - run climate_fetch first"
+        )
     df = pl.concat(frames)
     dup = df.select("cell_id", "date").is_duplicated().sum()
     if dup:
-        raise ExtractError(f"{var}: {dup} duplicate (cell_id, date) rows - monthly/yearly overlap?")
+        raise ExtractError(
+            f"{var}: {dup} duplicate (cell_id, date) rows - monthly/yearly overlap?"
+        )
     return df.sort("cell_id", "date")
 
 
@@ -63,15 +74,19 @@ def validate_daily_cache(var: str) -> None:
     df = load_daily(var)
     n_cells = df["cell_id"].n_unique()
     today = date.today()
-    per_year = df.with_columns(pl.col("date").dt.year().alias("year")).group_by("year").agg(
-        pl.len().alias("n")
+    per_year = (
+        df.with_columns(pl.col("date").dt.year().alias("year"))
+        .group_by("year")
+        .agg(pl.len().alias("n"))
     )
     for year, n in per_year.iter_rows():
         if year == today.year:
             continue  # partial year, short count expected
         expected = n_cells * (366 if calendar.isleap(year) else 365)
         if n != expected:
-            raise ExtractError(f"{var} {year}: expected {expected} rows ({n_cells} cells), got {n}")
+            raise ExtractError(
+                f"{var} {year}: expected {expected} rows ({n_cells} cells), got {n}"
+            )
 
 
 # --- monthly-additive metrics ---
@@ -83,14 +98,18 @@ def temp_monthly() -> pl.DataFrame:
     tasmax = load_daily("tasmax").rename({"value": "tasmax"})
     joined = tasmin.join(tasmax, on=["cell_id", "date"], how="inner")
     if joined.height != tasmin.height or joined.height != tasmax.height:
-        raise ExtractError("tasmin/tasmax daily series misaligned - missing dates on one side")
+        raise ExtractError(
+            "tasmin/tasmax daily series misaligned - missing dates on one side"
+        )
 
     return (
         joined.with_columns(
             pl.col("date").dt.year().alias("year"),
             pl.col("date").dt.month().alias("month"),
             ((pl.col("tasmin") < 0) & (pl.col("tasmax") > 0)).alias("_ftc_day"),
-            (-(pl.col("tasmin") + pl.col("tasmax")) / 2).clip(lower_bound=0).alias("_fdd_day"),
+            (-(pl.col("tasmin") + pl.col("tasmax")) / 2)
+            .clip(lower_bound=0)
+            .alias("_fdd_day"),
         )
         .group_by("cell_id", "year", "month")
         .agg(
@@ -119,7 +138,7 @@ def rain_monthly() -> pl.DataFrame:
     )
 
 
-# --- annual run-length metrics (rainfall only) ---
+# annual metrics (rainfall only)
 
 
 def _find_spells(is_dry: np.ndarray) -> list[tuple[int, int]]:
@@ -188,7 +207,7 @@ def rain_annual() -> pl.DataFrame:
     return pl.DataFrame(rows).sort("cell_id", "year")
 
 
-# --- 1991-2020 normals for additive metrics ---
+# 1991-2020 normals for additive metrics
 
 
 def compute_normals(monthly: pl.DataFrame, metrics: list[str]) -> pl.DataFrame:
@@ -217,8 +236,12 @@ def main():
 
     normals = pl.concat(
         [
-            compute_normals(tm, ADDITIVE_METRICS_TEMP).with_columns(pl.lit("temp").alias("group")),
-            compute_normals(rm, ADDITIVE_METRICS_RAIN).with_columns(pl.lit("rain").alias("group")),
+            compute_normals(tm, ADDITIVE_METRICS_TEMP).with_columns(
+                pl.lit("temp").alias("group")
+            ),
+            compute_normals(rm, ADDITIVE_METRICS_RAIN).with_columns(
+                pl.lit("rain").alias("group")
+            ),
         ]
     )
 

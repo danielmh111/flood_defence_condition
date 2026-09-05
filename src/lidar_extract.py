@@ -1,3 +1,7 @@
+"""
+AI was used to suggest where comments were necessary in this file, including drafting and including after human review
+"""
+
 import polars as pl
 import numpy as np
 from math import hypot

@@ -1,18 +1,19 @@
-"""Stage 0 - HadUK-Grid fetch and per-cell daily cache.
+"""
+First stage in creating climate features - fetch data from CEDA api.
 
-Design: climate_weathering_feature_extraction.md. Session decisions (2026-07-28):
-RESOLUTION_M is a global switch (5km pilot -> 1km production), fetch floor 1991-01-01
-(also the WMO 1991-2020 normal period), daily per-cell series persisted so metric
-definitions in climate_extract.py are free to iterate without re-downloading.
+create a cache of data per cell per day to be used for feature extraction and aggregation downstream.
 
-Only ~5,716 unique 1km cells (1,593 at 5km) cover the scoped assets, so the expensive
-step is the download, not the storage - stream one national NetCDF at a time, sample
-the scoped cells, discard the file.
+RESOLUTION_M is a to switch size of data (5km for testing, 1km production),
+fetch floor 1991-01-01 (also the WMO 1991-2020 normal period),
+daily per cell series persisted so metric definitions in climate_extract.py are cheaper to iterate without redownloading.
 
-Requires a CEDA account + access token in .env as CEDA_TOKEN for months <= DEFINITIVE_END
-(register at https://services.ceda.ac.uk/). Months after DEFINITIVE_END are served from
-the Met Office provisional stream, which needs no auth but has weaker QC and extra
-compression.
+Only ~5k unique 1km cells (1,593 at 5km) cover the scoped assets,
+so the expensive step is the download, not the storage
+
+Requires a CEDA account + access token in .env as CEDA_TOKEN for months <= DEFINITIVE_END (register at https://services.ceda.ac.uk/).
+Months after DEFINITIVE_END are served from the Met Office provisional stream, which needs no auth but has weaker qc and extra compression
+
+AI has been used to test and debug this code.
 """
 
 import calendar
@@ -35,10 +36,16 @@ from src.features import prepare_features
 
 load_dotenv()
 
-RESOLUTION_M = 5_000  # flip to 1_000 for production, once the 5km pass clears the notebook audit
-RES_LABEL = {1_000: "1km", 5_000: "5km", 12_000: "12km", 25_000: "25km", 60_000: "60km"}[
-    RESOLUTION_M
-]
+RESOLUTION_M = (
+    5_000  # flip to 1_000 for production, once the 5km pass clears the notebook audit
+)
+RES_LABEL = {
+    1_000: "1km",
+    5_000: "5km",
+    12_000: "12km",
+    25_000: "25km",
+    60_000: "60km",
+}[RESOLUTION_M]
 
 TEMP_VARS = ["tasmin", "tasmax"]
 RAIN_VARS = ["rainfall"]
@@ -50,15 +57,13 @@ HADUK_VERSION = "v1.3.2.ceda"
 CEDA_BASE = "https://dap.ceda.ac.uk/badc/ukmo-hadobs/data/insitu/MOHC/HadOBS/HadUK-Grid"
 PROVISIONAL_BASE = "https://hadleyserver.metoffice.gov.uk/hadobs/hadukgrid/data"
 
-FETCH_START = date(1991, 1, 1)  # 30y cap floor; also the WMO 1991-2020 normal-period start
+FETCH_START = date(1991, 1, 1)  # 30y cap floor, also the WMO 1991-2020 start
 DEFINITIVE_END = date(2025, 12, 31)  # last month covered by HADUK_VERSION
 
-# BNG / OSGB36 transverse mercator fingerprint (EPSG:27700) - cheaper and more robust
-# than parsing a WKT/CRS string out of the grid_mapping variable.
 BNG_FALSE_EASTING = 400_000.0
 BNG_FALSE_NORTHING = -100_000.0
 
-MAX_FALLBACK_M = 10_000.0  # sea-cell nearest-land search radius
+MAX_FALLBACK_M = 10_000.0  # sea cell nearest land search radius
 THROTTLE_S = 0.5
 MAX_RETRIES = 5
 BACKOFF_S = 2.0
@@ -73,7 +78,7 @@ SCRATCH_DIR = OUT_DIR / "_scratch"
 class FetchError(Exception): ...
 
 
-# --- month/file bookkeeping ---
+# month/file bookkeeping
 
 
 def month_range(start: date, end: date):
@@ -135,7 +140,9 @@ def _get(url: str, headers: dict) -> bytes:
             if r.status_code == 200:
                 return r.content
             if r.status_code == 401:
-                raise FetchError(f"401 on {url} - CEDA_TOKEN missing/expired, refresh it")
+                raise FetchError(
+                    f"401 on {url} - CEDA_TOKEN missing/expired, refresh it"
+                )
             if r.status_code < 500 and r.status_code != 429:
                 raise FetchError(f"{r.status_code} on {url}\n{r.text[:500]}")
             last = FetchError(f"{r.status_code} on {url}")
@@ -151,7 +158,7 @@ def download(var: str, year: int, month: int, out: Path) -> None:
     out.write_bytes(_get(url, headers))
 
 
-# --- grid / cell lookup ---
+# grid / cell lookup
 
 
 @dataclass
@@ -162,16 +169,20 @@ class GridInfo:
 
 
 def _assert_grid_contract(ds: xr.Dataset, var: str) -> None:
-    if "projection_x_coordinate" not in ds.coords or "projection_y_coordinate" not in ds.coords:
+    if (
+        "projection_x_coordinate" not in ds.coords
+        or "projection_y_coordinate" not in ds.coords
+    ):
         raise FetchError(f"{var}: missing projection_x/y_coordinate dims")
 
     grid_mapping_name = ds[var].attrs.get("grid_mapping")
     gm = ds[grid_mapping_name] if grid_mapping_name in ds.variables else None
     if gm is None or gm.attrs.get("grid_mapping_name") != "transverse_mercator":
         raise FetchError(f"{var}: expected grid_mapping_name=transverse_mercator")
-    if gm.attrs.get("false_easting") != BNG_FALSE_EASTING or gm.attrs.get(
-        "false_northing"
-    ) != BNG_FALSE_NORTHING:
+    if (
+        gm.attrs.get("false_easting") != BNG_FALSE_EASTING
+        or gm.attrs.get("false_northing") != BNG_FALSE_NORTHING
+    ):
         raise FetchError(f"{var}: grid_mapping does not fingerprint as EPSG:27700/BNG")
 
     x = ds["projection_x_coordinate"].to_numpy()
@@ -292,12 +303,23 @@ def build_cells(temp_grid: GridInfo, rain_grid: GridInfo) -> pl.DataFrame:
 
     grid_rows = []
 
-    def densify(iy: np.ndarray, ix: np.ndarray, grid: GridInfo, group: str) -> np.ndarray:
+    def densify(
+        iy: np.ndarray, ix: np.ndarray, grid: GridInfo, group: str
+    ) -> np.ndarray:
         keys = list(zip(iy.tolist(), ix.tolist()))
         uniq = sorted(set(keys))
         id_of = {k: i for i, k in enumerate(uniq)}
         for k, cid in id_of.items():
-            grid_rows.append({"group": group, "cell_id": cid, "iy": k[0], "ix": k[1], "x": float(grid.x[k[1]]), "y": float(grid.y[k[0]])})
+            grid_rows.append(
+                {
+                    "group": group,
+                    "cell_id": cid,
+                    "iy": k[0],
+                    "ix": k[1],
+                    "x": float(grid.x[k[1]]),
+                    "y": float(grid.y[k[0]]),
+                }
+            )
         return np.array([id_of[k] for k in keys], dtype=np.int32)
 
     cell_id_temp = densify(iy_t, ix_t, temp_grid, "temp")
@@ -325,7 +347,7 @@ def build_cells(temp_grid: GridInfo, rain_grid: GridInfo) -> pl.DataFrame:
     return cells
 
 
-# --- fetch loop ---
+# fetch loop
 
 
 def group_cell_indices(group: str) -> tuple[np.ndarray, np.ndarray]:
@@ -334,7 +356,9 @@ def group_cell_indices(group: str) -> tuple[np.ndarray, np.ndarray]:
     return rows["iy"].to_numpy(), rows["ix"].to_numpy()
 
 
-def fetch_month(var: str, year: int, month: int, iy: np.ndarray, ix: np.ndarray) -> None:
+def fetch_month(
+    var: str, year: int, month: int, iy: np.ndarray, ix: np.ndarray
+) -> None:
     shard = CACHE_DIR / var / f"{year}{month:02d}.parquet"
     if shard.exists():
         return
@@ -343,7 +367,7 @@ def fetch_month(var: str, year: int, month: int, iy: np.ndarray, ix: np.ndarray)
     download(var, year, month, tmp)
     try:
         ds = xr.open_dataset(tmp)
-        # advanced (point-wise) indexing: one value per (time, unique cell)
+        # advanced indexing, one value per (time, unique cell)
         values = ds[var].to_numpy()[:, iy, ix]  # (n_time, n_cells)
         dates = ds["time"].to_numpy()
         ds.close()
@@ -369,20 +393,25 @@ def consolidate_year(var: str, year: int) -> None:
     if not all(p.exists() for p in month_shards):
         return
     out = var_dir / f"{year}.parquet"
-    pl.concat([pl.read_parquet(p) for p in month_shards]).sort("cell_id", "date").write_parquet(out)
+    pl.concat([pl.read_parquet(p) for p in month_shards]).sort(
+        "cell_id", "date"
+    ).write_parquet(out)
     for p in month_shards:
         p.unlink()
 
 
 def main(limit_months: int | None = None):
     if not CELLS_PATH.exists() or not GRID_PATH.exists():
-        temp_grid = load_grid(REFERENCE_VAR["temp"], FETCH_START.year, FETCH_START.month)
-        rain_grid = load_grid(REFERENCE_VAR["rain"], FETCH_START.year, FETCH_START.month)
+        temp_grid = load_grid(
+            REFERENCE_VAR["temp"], FETCH_START.year, FETCH_START.month
+        )
+        rain_grid = load_grid(
+            REFERENCE_VAR["rain"], FETCH_START.year, FETCH_START.month
+        )
         build_cells(temp_grid, rain_grid)
 
     group_indices = {g: group_cell_indices(g) for g in ("temp", "rain")}
-    # provisional months are published "shortly after the end of each month" - the
-    # current, still-in-progress month is never available, so stop at the last full month.
+    # provisional months are published "shortly after the end of each month" - the current, in progress month is never available, so stop at the last full month.
     today = date.today()
     fetch_end = date(today.year, today.month, 1) - timedelta(days=1)
 

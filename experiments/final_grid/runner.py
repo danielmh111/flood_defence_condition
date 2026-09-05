@@ -1,3 +1,8 @@
+"""
+NOTE: all code in this module (final experiment) was AI generated after providing an agent with context of the previous experiments,
+the src code to be used and a detailed human written design. All code was checked before results were trusted.
+"""
+
 # final grid: 2 compositions x 1,440 configs + 3 reference cells, flat. every cell is one
 # independent 10-fold spatially blocked OOF pass through run_oof. folds are built exactly as in the
 # fine grid (KMeans blocks seed 123, StratifiedGroupKFold seed 123) so cells pair across experiments.

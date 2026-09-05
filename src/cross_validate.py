@@ -84,7 +84,7 @@ def produce_spatial_blocks(
     return KMeans(n_clusters=n_blocks, random_state=seed, n_init=10).fit_predict(coords)
 
 
-# --- OOF harness (additive; nothing above this line is touched) ---
+# OOF harness (additive, nothing above this line is touched)
 
 GRADES: tuple[int, ...] = (1, 2, 3, 4, 5)
 
@@ -102,7 +102,9 @@ def _grade_column_index(
     if np.unique(classes_int).size != classes_int.size:
         raise ValueError(f"duplicate classes: {classes_int.tolist()}")
     if not set(classes_int.tolist()) <= set(grades):
-        raise ValueError(f"classes {classes_int.tolist()} outside grades {list(grades)}")
+        raise ValueError(
+            f"classes {classes_int.tolist()} outside grades {list(grades)}"
+        )
     return {int(c): j for j, c in enumerate(classes_int)}
 
 
@@ -216,7 +218,9 @@ def run_oof(
         )
 
         if filled[test].any():
-            raise ValueError(f"fold {k}: some rows already predicted by an earlier fold")
+            raise ValueError(
+                f"fold {k}: some rows already predicted by an earlier fold"
+            )
         filled[test] = True
 
         if shap_fn is not None:

@@ -1,3 +1,7 @@
+"""
+AI has been used in this file for testing, debugging, and writting docstrings (and suggested some comments that were included)
+"""
+
 import numpy as np
 import polars as pl
 from project_paths import paths

@@ -1,18 +1,7 @@
-"""Stage 2 - aggregate the reduced climate metrics (src/climate_extract.py) into
-asset_id-keyed windowed features. The exposure_aggregate.py analogue; design doc §6-§7.
+"""
+Final step in climate feature path. This file is for aggregating climate data that was already fetched from the CEDA api and aggreagated upstream.
 
-Key divergence from exposure (deliberate, §6): accumulation is *clipped* to the
-observable span [observable_floor, t_eff), not left as a raw window count, so `count`
-and `rate` stay mutually consistent for a dense (climate) rather than sparse
-(flood-event) field.
-
-Two granularities, both reduced with the same masked dense-grid trick (`_masked_reduce`):
-- additive metrics (ftc, fdd, drydays, r10mm, r20mm): `count`/`rate` at MONTH granularity
-  (>=1mo edge error), `max_in_year`/`z` at YEAR granularity (fully-observable calendar
-  years only, to avoid a partial-year understatement artefact - a refinement on top of
-  the design doc, agreed in the planning session).
-- annual run-length metrics (dryspell_*, rain_max_day, rewet_15): {mean, max} or
-  {sum, mean, max} at YEAR granularity, same fully-observable-year definition.
+AI has been used to generate some of this code, which was checked before using.
 """
 
 import calendar
@@ -37,7 +26,12 @@ from src.exposure_aggregate import load_anchors
 
 ADDITIVE_METRICS = ADDITIVE_METRICS_TEMP + ADDITIVE_METRICS_RAIN
 ANNUAL_EXTREME_METRICS = ["dryspell_max", "rain_max_day"]
-ANNUAL_COUNT_METRICS = ["dryspell_count_10", "dryspell_count_15", "dryspell_count_21", "rewet_15"]
+ANNUAL_COUNT_METRICS = [
+    "dryspell_count_10",
+    "dryspell_count_15",
+    "dryspell_count_21",
+    "rewet_15",
+]
 ANNUAL_METRICS = ANNUAL_EXTREME_METRICS + ANNUAL_COUNT_METRICS
 
 METRIC_GROUP = {
@@ -91,7 +85,9 @@ def _nat_mask(*arrs: np.ndarray) -> np.ndarray:
     return out
 
 
-def _month_bounds(observable_floor: np.ndarray, t_eff: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _month_bounds(
+    observable_floor: np.ndarray, t_eff: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     """first/last fully-included month ordinal per row.
 
     NaT does NOT propagate to NaN through a plain datetime64->int64->float cast (NaT's
@@ -103,9 +99,9 @@ def _month_bounds(observable_floor: np.ndarray, t_eff: np.ndarray) -> tuple[np.n
     of_month_start = observable_floor.astype("datetime64[M]")
     of_year = of_month_start.astype("datetime64[Y]").astype(float) + 1970
     of_month = (of_month_start.astype("datetime64[M]").astype("int64") % 12) + 1
-    of_is_month_start = observable_floor.astype("datetime64[D]") == of_month_start.astype(
+    of_is_month_start = observable_floor.astype(
         "datetime64[D]"
-    )
+    ) == of_month_start.astype("datetime64[D]")
     first_ord = of_year * 12 + (of_month - 1) + (~of_is_month_start).astype(float)
 
     te_month_start = t_eff.astype("datetime64[M]")
@@ -118,7 +114,9 @@ def _month_bounds(observable_floor: np.ndarray, t_eff: np.ndarray) -> tuple[np.n
     return first_ord, last_ord
 
 
-def _year_bounds(observable_floor: np.ndarray, t_eff: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _year_bounds(
+    observable_floor: np.ndarray, t_eff: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     nat = _nat_mask(observable_floor, t_eff)
 
     of_year_start = observable_floor.astype("datetime64[Y]")
@@ -182,16 +180,22 @@ def _masked_reduce(
     zero". `count`/`sum` reductions still return 0 for a real, non-empty, all-zero span.
     """
     if cell_id.dtype != object:
-        pos = np.fromiter((cell_pos[int(c)] for c in cell_id), dtype=np.int64, count=len(cell_id))
+        pos = np.fromiter(
+            (cell_pos[int(c)] for c in cell_id), dtype=np.int64, count=len(cell_id)
+        )
     else:
-        pos = np.fromiter((cell_pos[c] for c in cell_id), dtype=np.int64, count=len(cell_id))
+        pos = np.fromiter(
+            (cell_pos[c] for c in cell_id), dtype=np.int64, count=len(cell_id)
+        )
 
     per_row = grid[pos]  # (n_rows, n_idx)
     n_idx = grid.shape[1]
     first_rel = first_idx - index_min
     last_rel = last_idx - index_min
     idx_grid = np.arange(n_idx)
-    mask = (idx_grid[None, :] >= first_rel[:, None]) & (idx_grid[None, :] <= last_rel[:, None])
+    mask = (idx_grid[None, :] >= first_rel[:, None]) & (
+        idx_grid[None, :] <= last_rel[:, None]
+    )
     valid = mask & ~np.isnan(per_row)
     any_valid = valid.any(axis=1)
 
@@ -202,13 +206,17 @@ def _masked_reduce(
     elif reduction == "mean":
         summed = np.where(valid, per_row, 0.0).sum(axis=1)
         counts = valid.sum(axis=1)
-        out = np.divide(summed, counts, out=np.full(len(cell_id), np.nan), where=counts > 0)
+        out = np.divide(
+            summed, counts, out=np.full(len(cell_id), np.nan), where=counts > 0
+        )
     else:
         raise AggregateError(f"unknown reduction {reduction!r}")
 
     out = out.astype(np.float64)
     if reduction in ("sum", "count"):
-        out[~any_valid] = np.nan  # empty range: null, not 0 (distinct from a measured zero)
+        out[~any_valid] = (
+            np.nan
+        )  # empty range: null, not 0 (distinct from a measured zero)
     else:
         out[~any_valid] = np.nan
     return out
@@ -233,14 +241,19 @@ def build_anchor_frame(anchors: pl.DataFrame, ceiling: date) -> pl.DataFrame:
     out = anchors.join(cells, on="asset_id", how="left")
 
     unassessable = pl.col("t_anchor").is_null()
-    t_eff = pl.when(unassessable).then(None).otherwise(
-        pl.min_horizontal(pl.col("t_anchor"), pl.lit(ceiling))
+    t_eff = (
+        pl.when(unassessable)
+        .then(None)
+        .otherwise(pl.min_horizontal(pl.col("t_anchor"), pl.lit(ceiling)))
     )
     out = out.with_columns(t_eff.alias("t_eff")).with_columns(
-        (pl.col("t_anchor") - pl.col("t_eff")).dt.total_days().cast(pl.Int32).alias(
-            "climate__ceiling_lag_days"
+        (pl.col("t_anchor") - pl.col("t_eff"))
+        .dt.total_days()
+        .cast(pl.Int32)
+        .alias("climate__ceiling_lag_days"),
+        (pl.col("fallback_temp") | pl.col("fallback_rain")).alias(
+            "climate__oncoast_fallback"
         ),
-        (pl.col("fallback_temp") | pl.col("fallback_rain")).alias("climate__oncoast_fallback"),
     )
     return out
 
@@ -250,20 +263,30 @@ def with_window_cols(df: pl.DataFrame, window: timedelta) -> pl.DataFrame:
     unassessable = pl.col("t_eff").is_null()
     window_start = pl.col("t_eff") - pl.duration(days=window.days)
 
-    observable_floor = pl.when(unassessable).then(None).otherwise(
-        pl.max_horizontal(
-            window_start, pl.col("asset_start_date"), pl.lit(EFFECTIVE_RECORD_FLOOR)
+    observable_floor = (
+        pl.when(unassessable)
+        .then(None)
+        .otherwise(
+            pl.max_horizontal(
+                window_start, pl.col("asset_start_date"), pl.lit(EFFECTIVE_RECORD_FLOOR)
+            )
         )
     )
     df = df.with_columns(observable_floor.alias(f"_obs_floor_{label}"))
 
-    observable_years = pl.when(unassessable).then(None).otherwise(
-        (pl.col("t_eff") - pl.col(f"_obs_floor_{label}")).dt.total_days() / 365.25
+    observable_years = (
+        pl.when(unassessable)
+        .then(None)
+        .otherwise(
+            (pl.col("t_eff") - pl.col(f"_obs_floor_{label}")).dt.total_days() / 365.25
+        )
     )
     df = df.with_columns(observable_years.alias(f"_obs_years_{label}"))
 
-    truncated = pl.when(unassessable).then(None).otherwise(
-        pl.col(f"_obs_years_{label}") < (window.days / 365.25)
+    truncated = (
+        pl.when(unassessable)
+        .then(None)
+        .otherwise(pl.col(f"_obs_years_{label}") < (window.days / 365.25))
     )
     return df.with_columns(truncated.alias(f"climate__{label}__window_truncated"))
 
@@ -306,8 +329,12 @@ def build_features(
     year_min, year_max = FETCH_START.year, ceiling.year
     year_grids_additive: dict[str, tuple[np.ndarray, dict[int, int]]] = {}
     for metric, src in monthly_src.items():
-        annual_sum = src.group_by("cell_id", "year").agg(pl.col(metric).sum().alias(metric))
-        year_grids_additive[metric] = dense_grid(annual_sum, "year", metric, year_min, year_max)
+        annual_sum = src.group_by("cell_id", "year").agg(
+            pl.col(metric).sum().alias(metric)
+        )
+        year_grids_additive[metric] = dense_grid(
+            annual_sum, "year", metric, year_min, year_max
+        )
 
     # --- year-level dense grids: run-length annual metrics (already per-year) ---
     year_grids_annual: dict[str, tuple[np.ndarray, dict[int, int]]] = {}
@@ -344,7 +371,9 @@ def build_features(
             count = _masked_reduce(
                 cell_id, first_month, last_month, month_min, grid_m, pos_m, "count"
             )
-            rate = np.where(obs_years > 0, count / np.where(obs_years > 0, obs_years, 1), np.nan)
+            rate = np.where(
+                obs_years > 0, count / np.where(obs_years > 0, obs_years, 1), np.nan
+            )
 
             grid_y, pos_y = year_grids_additive[metric]
             max_in_year = _masked_reduce(
@@ -393,11 +422,16 @@ def build_features(
     features = pl.DataFrame(out_cols).with_columns(cs.float().fill_nan(None))
     features = features.with_columns(
         anchor_frame["asset_id"],
-        *(anchor_frame[f"climate__{window_label(w)}__window_truncated"] for w in WINDOWS),
+        *(
+            anchor_frame[f"climate__{window_label(w)}__window_truncated"]
+            for w in WINDOWS
+        ),
         anchor_frame["climate__oncoast_fallback"],
         anchor_frame["climate__ceiling_lag_days"],
     )
-    return features.select("asset_id", *[c for c in features.columns if c != "asset_id"])
+    return features.select(
+        "asset_id", *[c for c in features.columns if c != "asset_id"]
+    )
 
 
 def main():
@@ -417,7 +451,9 @@ def main():
     )
 
     # --- assert gates (C5-C6; see plan) ---
-    assert features["asset_id"].sort().equals(anchors["asset_id"].sort()), "asset_id mismatch"
+    assert features["asset_id"].sort().equals(anchors["asset_id"].sort()), (
+        "asset_id mismatch"
+    )
 
     count_cols = [c for c in features.columns if c.endswith("__count")]
     for col in count_cols:
@@ -448,7 +484,9 @@ def main():
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
 
-    print(f"wrote {features.height} assets x {features.width - 1} feature columns to {OUT_PATH}")
+    print(
+        f"wrote {features.height} assets x {features.width - 1} feature columns to {OUT_PATH}"
+    )
 
 
 if __name__ == "__main__":

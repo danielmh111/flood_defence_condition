@@ -1,0 +1,39 @@
+# Ethics Approval Form
+
+```{r ethics-setup}
+library(tidyverse)
+library(kableExtra)
+
+```
+
+```{=latex}
+\begin{adjustwidth}{-2cm}{-2cm}
+```
+
+```{r tbl-ethics-review}
+
+form <- read_csv("data/StudentEthicalReviewRecord14153SubmissionforDanielHill.csv")
+
+form_tbl <- form %>%
+    kable(
+        caption = "Ethical Approval Form",
+        na = "",
+        format = "latex",
+        longtable = TRUE,
+        booktabs = TRUE
+    ) %>%
+    kable_styling(
+        latex_options = c("striped", "repeat_header"),
+        font_size = 9
+    ) %>%
+    column_spec(1, width = "9cm") %>%
+    column_spec(2, width = "3cm")
+
+
+form_tbl
+
+```
+
+```{=latex}
+\end{adjustwidth}
+```

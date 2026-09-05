@@ -1,0 +1,13 @@
+---
+format:
+    pdf:
+        include-in-header:
+            text: |
+                \usepackage{etoolbox}
+                \AtBeginDocument{\setlength{\cslentryspacingunit}{1.5\baselineskip}}
+---
+
+# References {.unnumbered}
+
+::: {#refs}
+:::

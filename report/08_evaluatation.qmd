@@ -1,0 +1,17 @@
+# Evaluation
+
+## Evaluation of Artifact
+
+ML classifiers produced modest results and are not ready for an operationally useful flood management tool. They did outperform baselines and heuristics, answering the research question by suggesting ML could be advantageous for developing alternative flood management tools. However, if performance represents a ceiling, future work should look for alternatives. The most likely explanation for modest performance is lack of predictive power in the data. Future work could: identify data sources with stronger signal, explore collection and use of directly sensed data like local hardware at defence locations, or work with infrastructure engineers to identify other ways to capture and encode domain expertise.
+
+Findings on which features carried predictive power are interesting but possibly incomplete. Far more time is needed to search for sources and dedicate necessary depth to feature extraction formulations for each. For example many ideas for extracting damage encoding features from LiDAR profiles were planned then rejected because of time constraints. That said, findings stand alone as genuine contributions describing relative predictive signal in several previously unconnected data sources.
+
+The findings presented are considered trustworthy given robust experimental design: consideration of spatial leakage, controlled evaluation on shared cross-validation folds, careful progression through tuning grids, and care over data collection and preparation. 
+
+## Evaluation of General Approach
+
+The data scope should have been narrower given time and resources, although this would likely lead to a less successful artifact. 
+
+Supervision sessions were of great help, for technical discussion, developing narrative structure, and above all for constantly evaluating and realigning the scope. Feedback was acted on; discussion points were normally recorded next day. (@tbl-appendix-supervison-record) Milestones were agreed in the first session and updates provided as they were achieved. On reflection, scheduling sessions regularly and far in advance would have helped consistency by creating regular checkpoints.
+
+Research was done iteratively; new literature material was sought, read, and reread throughout. This approach was valuable and made the project a rich learning experience, although tighter project-management-style phases could have delivered a more polished tool with more obvious practical value, at the cost of pure research output and domain learning. Balance had to be found.

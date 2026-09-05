@@ -1,0 +1,24 @@
+# Conclusion
+
+## Project Summary
+
+This project researched the EA's challenge of maintaining a large, aging flood defence infrastructure with a demanding inspection burden. Established engineering knowledge was reviewed, then a new dataset built from open sources to train ML models, attempting to outperform heuristic-derived predictions. Results of ML research were evaluated.
+
+## Results Summary
+
+ML models produced outperformed heuristic-derived methods in the section of the dataset most relevant to developing a tool for practitioners, with precision ~3.5x the base rate versus 1.25x for heuristics. The research also reviewed a non-expert’s application of the heuristics and produced findings on which features and data sources improve these classifiers.
+Section 2.1 set two bars: how well outputs answer the research question; and to what extent the artifact demonstrates operational usefulness. Following discussions in chapter 8, the research bar is considered met, although not the operational bar.
+
+## Discussion
+
+### Have aims been met?
+
+The project collected several new data sources, and explored how ML models trained on these performed relative to heuristics. The was done reproducibly, with the repository publicly available for reproduction and extension. Findings about which asset characteristics and environmental features contribute most to predicting defence condition were presented. This is all evidence the aims were met. However, evidence that an operational tool could be developed following this methodology is weak.
+
+### Is the problem solved?
+
+Good progress was made in the problem space, with new insight into applying Halcrow guidance, and successful feature engineering approaches and model architectures explored. Although knowledge has been contributed, findings are not strong enough to immediately improve how England's flood defences are managed.
+
+## Future Work
+
+Future work is broad and abundant. Promising directions include using approaches from LiDAR feature extraction for ML training to revisit Halcrow curves, using environmental and physical features to develop updated, more informed heuristics. Additionally, ML models could be revisited for the same problem with new data, either new feature formulations from sources already explored, such as sensitivity testing on buffer zones to  past flood event exposure, or new data entirely. Of particular interest would be data that could be captured from local or on-site stations, such as sensing small earth movements or real-time water velocities or earth temperatures. An extremely helpful data source possible with EA disclosure would be a schedule of maintenance and repair carried out on assets. 

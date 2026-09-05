@@ -1,0 +1,11 @@
+# Proposed Artefact
+
+The proposed artefact is a reproducible ML pipeline. It will include source code for feature extraction, infrastructure for running experiments and producing metrics, and reusable notebooks for evaluating results. This will allow practitioners and researchers to inspect the work, quickly build the ML models, and integrate further work. 
+
+ML models researched in this pipeline will be classifiers for predicting condition grade of flood defence assets. 
+
+The pipeline will be hosted publicly to make research and results accessible, and will contain environment lock file for python and R to ensure future collaborators can reuse all code [@ref-code]. Data will be tracked using DVC (data version control) but not hosted in github due to size. This allows simple data sharing including intermediate and processed files in future.
+
+ML models will be presented in the context of how they could become useful to practitioners managing flood defences. A tool is envisioned to flag deteriorating assets for planning intervention.
+
+Research work using the AIMS dataset is limited, and applications of ML to this dataset at national scale has not been done based on reviewed literature, meaning this artefact can make a novel contribution to the field while building upon existing material in the Halcrow group report, the field of infrastructure deterioration research, and the findings of @ref-tarrantIdentifyingSignsWeakness2017 on detecting signs of weakness in flood defences.

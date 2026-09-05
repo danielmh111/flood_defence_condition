@@ -1,0 +1,269 @@
+# Results
+
+```{r results-setup}
+
+# cat("renv project root:", renv::project(), "\n")
+# cat("tidyverse installed here?:", "tidyverse" %in% rownames(installed.packages()), "\n")
+
+library(tidyverse)
+library(arrow)
+```
+
+## High Level
+
+ML models outperform naive baselines and heuristic predictions at the important condition $\ge{4}$ boundary when a tightly scoped budget of the few hundred most confident predictions is considered, on all important metrics inluding PR-AUC and QWK. These are shown in @tbl-confusion and @tbl-sweep-curve.
+
+Performance degrades as lower confidence predictions are included eventually falling back to the no-skill baseline.
+
+Several features from additional remote sensed or environmental datasets were used in the final model because they carried predictive signal, but the majority of features engineered in this project were discarded for having little or no potential to improve predictions.
+
+The PR-AUC at $grade \ge{4}$ results showed no evidence heuristic predictions applied at national scale (as described in Chapter 4.2) had more skill than naive predictors - scores are almost identical. However, QWK is significantly higher, indicating predictions made by heuristic follow the ordinal rules of the classes.
+
+
+```{r fig-feature-family-sweep-curves}
+#| fig-cap: "Precision improvement against inspection scope for the best cell per feature family, coarse grid experiment. Baselines shown at maximum lift operating point. Base rate 0.096."
+#| fig-width: 6.3
+#| fig-height: 3.9
+
+family_sweep <- read_parquet("data/nb_19_sweep_curve_by_family.parquet")
+
+family_levels <- c("identity", "identity_geo", "identity_climate", "identity_lidar", "identity_all")
+point_levels <- c("heuristic_national", "dummy_stratified", "dummy_median")
+
+# palette <- set_names(
+#     c(
+#         "#1f77b4",
+#         "#ff7f0e",
+#         "#2ca02c",
+#         "#d62728",
+#         "#9467bd",
+#         "#8c564b",
+#         "#e377c2",
+#         "#7f7f7f"),
+#     c(family_levels, point_levels)
+# )
+
+family_curves <- family_sweep %>%
+    filter(label %in% family_levels) %>%
+    # filter(between(n_flagged, 50, 5000)) %>%
+    mutate(label = factor(label, levels = c(family_levels, point_levels))) %>%
+    arrange(label, n_flagged)
+
+family_points <- family_sweep %>%
+    filter(label %in% point_levels, n_flagged > 0) %>%
+    group_by(label) %>%
+    slice_max(lift, n = 1, with_ties = FALSE) %>%
+    ungroup() %>%
+    mutate(label = factor(label, levels = c(family_levels, point_levels)))
+
+ggplot(mapping = aes(n_flagged, lift, colour = label)) +
+    geom_hline(yintercept = 1, linetype = "dotted", colour = "grey40") +
+    geom_line(data = family_curves, linewidth = 0.5, alpha = 0.9) +
+    geom_point(data = family_points, shape = 18, size = 3) +
+    scale_x_log10(labels = scales::label_comma()) +
+    # scale_colour_manual(values = palette, drop = FALSE, name = NULL) +
+    scale_colour_brewer(palette = "Dark2", drop = FALSE, name = NULL) +
+    labs(x = "assets flagged", y = "precision / base rate (lift)") +
+    theme_minimal(base_size = 9) +
+    theme(
+        legend.position = "right",
+        legend.key.size = unit(0.8, "lines"),
+        panel.grid.minor = element_blank()
+    )
+```
+
+
+## Evidence of Predictive Signal
+
+@fig-feature-family-sweep-curves from the coarse grid experiment comparing several families of feature selections shows that predictive signal exists among extracted features. This precision curve against assets flagged (from most to least confident prediction, using the predict_proba value) was chosen because recall is fairly consistent across asset budgets sizes so precision is the main discriminating metric. The curve covers only classifications of assets grade 4 or 5 vs lower - the boundary between fair condition and poor condition, and therefore the point of most concern. Every feature selection in this experiment showed an improvement over the "no skill" base rate once the threshold is set appropriately, and over identity features alone at some threshold. These results informed the more refined feature selection designs for final experiments. Most additional features carried only weak signal, and including degrade models due to the curse of dimensionality faster than any improvement from additional information encoded was gained. @fig-sweep-curve shows final configs selected and the precison curve from the final experiment. Tables [@tbl-data-dictionary] in the appendix describe exact feature selection. This indicates better ML models are achievable with extra environmental, remote sensed, or climate data augmenting data held in the AIMS national flood defense register. These features are different from the static fields used in Halcrow heuristics, and add skill to the classifier. @fig-family-comparison shows LiDAR as the group of features improving model performance most. @fig-sweep-curve shows heuristic predictions sit at the same base rate as naive predictors, so while they are usually sensible (QWK=1.85, comfortably above dummies), they have no discrimination in the operationally significant classes (PR-AUC=0.099) while ML models do.
+
+Each source has its own notebook in the repository where far more features were investigated. The flood event exposure data source (whether an asset has been exposed to a flood thats happened in a defined time window) was completely unused because none of its features were useful.
+
+The curves also show that precision collapses back down to the base rate as more and more assets are added into the pool. Once all predictions are used (no confidence threshold set), the ML models are no more useful than the naive predictors.
+
+```{r fig-family-comparison}
+#| fig-cap: "Effect of adding each feature group to the baseline (only identity features). Data from the coarse grid experiment. Each point is one hyperparameter config, paired within fold with the same configuration on just identity features. Bars mark the mean across the 50 configurations, and the count gives configurations with a positive delta."
+#| fig-width: 6.3
+#| fig-height: 3.4
+
+config_delta <- read_parquet("data/nb_19_config_delta.parquet") %>%
+    mutate(
+        family = recode_factor(
+            feature_set,
+            identity_all = "+ all three",
+            identity_geo = "+ geology",
+            identity_climate = "+ climate",
+            identity_lidar = "+ LiDAR"
+        ),
+        metric = recode_factor(
+            metric,
+            pr_auc_ge4 = "PR-AUC (grade 4 or 5)",
+            QWK = "Quadratic weighted kappa"
+        )
+    )
+
+family_summary <- config_delta %>%
+    group_by(family, metric) %>%
+    summarise(
+        centre = mean(mean_delta),
+        configs_positive = sum(mean_delta > 0),
+        n_configs = n(),
+        .groups = "drop"
+    ) %>%
+    mutate(tally = str_glue("{configs_positive}/{n_configs}"))
+
+ggplot(config_delta, aes(mean_delta, family)) +
+    geom_vline(xintercept = 0, linetype = "dotted", colour = "grey40") +
+    geom_jitter(aes(colour = family), height = 0.18, size = 0.7, alpha = 0.5, show.legend = FALSE) +
+    geom_point(data = family_summary, aes(centre, family), size = 2.2, shape = 124) +
+    geom_text(
+        data = family_summary,
+        aes(x = Inf, label = tally),
+        hjust = 1.1,
+        size = 2.2,
+        colour = "grey30"
+    ) +
+    facet_wrap(~metric, scales = "free_x") +
+    scale_colour_brewer(palette = "Dark2") +
+    labs(x = "change against identity-only baseline", y = NULL) +
+    theme_minimal(base_size = 9) +
+    theme(
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        strip.text = element_text(size = 8)
+    )
+```
+
+\pagebreak
+
+| classifier | True Pos | False Pos | False Neg | True Neg | Precision | Recall | Improvement |
+|---|---|---|---|---|---|---|---|
+| HGB, identity features + LiDAR + climate | 67 | 133 | 2,174 | 20,930 | 33.5% | 3.0% | 3.48× |
+| HGB, identity + LiDAR + all | 60 | 140 | 2,181 | 20,923 | 30.0% | 2.7% | 3.12× |
+| Halcrow heuristic | 24 | 176 | 2,217 | 20,887 | 12.0% | 1.1% | 1.25× |
+: Confusion comparison of two HGB models and the Halcrow heuristics {#tbl-confusion tbl-colwidths="[24,9,9,9,9,10,9,21]"}
+
+\pagebreak
+
+| classifier                    | Feature Composition        | pr auc @ grade >= 4 | Quadratic Weighted Cohen's Kappa |
+|-------------------------------|----------------------------|---------------------|----------------------------------|
+| HGB                           | Identity + Lidar + Climate | 0.19765             | 0.280176                         |
+| HGB                           | Identity + All Lidar       | 0.19595             | 0.28451                          |
+| Nationally Applied Heuristics | -                          | 0.09884             | 0.18514                          |
+| Naive dummy - stratified      | -                          | 0.09751             | -0.00085                         |
+| Naive dummy - median          | -                          | 0.09658             | 0.00000                          |
+: Argsweep results: Performance of classifiers on all 23,304 assets {#tbl-sweep-curve}
+
+```{r fig-sweep-curve}
+#| fig-cap: "Precision against inspection budget. The heuristic is drawn at its available operating points, with constant score dummies omitted."
+#| fig-width: 6.3
+#| fig-height: 3.6
+
+sweep <- read_parquet("data/nb_21_sweep_curve.parquet") %>%
+    mutate(
+        arm = recode_factor(
+            label,
+            identity_lidar_climate_raw = "HGB, identity + LiDAR + climate",
+            identity_lidar_full = "HGB, identity + LiDAR + all",
+            heuristic_national = "Halcrow heuristic"
+        )
+    )
+
+br <- unique(sweep$base_rate)
+
+models <- sweep %>%
+    filter(label != "heuristic_national") %>%
+    group_by(arm, bin = floor(log10(n_flagged) * 120)) %>%
+    slice_max(n_flagged, n = 1, with_ties = FALSE) %>%
+    ungroup()
+
+heuristic <- sweep %>%
+    filter(label == "heuristic_national") %>%
+    arrange(n_flagged)
+
+ggplot(models, aes(n_flagged, precision, colour = arm)) +
+    geom_hline(yintercept = br, linetype = "dotted", colour = "grey40") +
+    geom_line(linewidth = 0.6) +
+    # geom_step(data = heuristic, direction = "vh", linewidth = 0.5, linetype = "22") +
+    geom_point(data = heuristic, size = 1.5) +
+    annotate(
+        "text",
+        x = max(sweep$n_flagged),
+        y = br,
+        label = "base rate",
+        hjust = 1,
+        vjust = -0.7,
+        size = 2.5,
+        colour = "grey40"
+    ) +
+    scale_x_log10(breaks = c(50, 200, 1000, 5000, 23304)) +
+    scale_y_continuous(limits = c(0, NA)) +
+    labs(x = "Assets flagged", y = "Share flagged that are grade>=4", colour = NULL) +
+    theme_minimal(base_size = 9) +
+    theme(legend.position = "bottom", panel.grid.minor = element_blank())
+```
+
+## SHAP Values
+
+SHAP values were inspected to learn each feature's importance and contibution to classification decisions. Charts like @fig-shap-bump were used consistently within experiments in notebooks in the repository to inform feature selection. @fig-shap-bump shows the best performing feature composition, with SHAP values aggregated across a few similar hyperparameter configurations. The bump chart was chosen because it shows some features become important at the operationally important grade 3|4 boundary, while others fall off or stay consistent. For example, `aims__asset_sub_type` is the most important feature for making correct decisions when a fair grade (1-3) is predicted, but drops to become the second least important feature for predicting grade 5. Conversely, the `lidar__crest_resid_std` feature is second least used when classifying grade 3 but jumps to second most used for grade 4 on the other side of the boundary. Age is consistently an important feature. This chart does not show magnitude, only rank - read outs of exact scores and beehive plots in the experiment notebooks show that top features tend to be much stronger and the final five or so features are very close in absolute value. 
+
+```{r fig-shap-bump}
+#| fig-cap: "SHAP feature importance rank across condition grades, HGB with identity, LiDAR and raw climate features. Rank 1 is the most important feature within a grade."
+#| fig-width: 6.3
+#| fig-height: 4.4
+
+bump <- read_parquet("data/nb_21_shap_importance.parquet") %>%
+    filter(composition == "identity_lidar_climate_raw") %>%
+    group_by(grade) %>%
+    mutate(plot_rank = rank(-mean_abs_shap)) %>%
+    ungroup()
+
+feature_order <- bump %>%
+    filter(grade == 1) %>%
+    arrange(plot_rank) %>%
+    pull(feature)
+
+bump <- bump %>%
+    mutate(feature = factor(feature, levels = feature_order))
+
+tab20 <- c(
+    "#1f77b4",
+    "#aec7e8",
+    "#ff7f0e",
+    "#ffbb78",
+    "#2ca02c",
+    "#98df8a",
+    "#d62728",
+    "#ff9896",
+    "#9467bd",
+    "#c5b0d5",
+    "#8c564b",
+    "#c49c94"
+    # "#000000"
+)
+
+ggplot(bump, aes(grade, plot_rank, colour = feature)) +
+    geom_line(linewidth = 0.5, alpha = 0.9) +
+    geom_point(size = 1.4, alpha = 0.9) +
+    geom_text(
+        data = filter(bump, grade == 5),
+        aes(label = feature),
+        hjust = 0,
+        nudge_x = 0.1,
+        size = 2,
+        alpha = 0.9
+    ) +
+    scale_x_continuous(breaks = 1:5) +
+    scale_y_reverse(breaks = seq_along(feature_order)) +
+    scale_colour_manual(
+        values = set_names(tab20[seq_along(feature_order)], feature_order),
+        guide = "none"
+    ) +
+    coord_cartesian(xlim = c(0.7, 5.5), clip = "off") +
+    labs(x = "grade", y = "importance rank (1 = most important)") +
+    theme_minimal(base_size = 9) +
+    theme(
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(5.5, 100, 5.5, 5.5)
+    )
+```

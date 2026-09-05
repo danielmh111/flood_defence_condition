@@ -1,0 +1,33 @@
+# Attributions
+
+## Data usage
+
+The project makes use of data available under Open Govenment Licences:
+
+- The AIMS flood defence data set, © Environment Agency copyright and/or database right 2020. All rights reserved.
+- Contains British Geological Survey materials ©NERC 2026"
+- LIDAR DTM composite 1m © Environment Agency copyright and/or database right 2022. All rights reserved.
+- Recorded Flood Outlines © Environment Agency copyright and/or database right 2025. All rights reserved.
+- Climate data obtained via CEDA (MET Office 2018)
+
+
+Met Office; Hollis, D.; McCarthy, M.; Kendon, M.; Legg, T.; Simpson, I. (2018): HadUK-Grid gridded and regional average climate observations for the UK. Centre for Environmental Data Analysis, 21/082026. [http://catalogue.ceda.ac.uk/uuid/4dc8450d889a491ebb20e724debe2dfb](http://catalogue.ceda.ac.uk/uuid/4dc8450d889a491ebb20e724debe2dfb)
+
+
+## AI Usage
+
+Generative AI has been used at times in this project, in compliance with the recommended use of AI for this module. Models from Anthropic including Claude Sonnet 4.6, Claude Sonnet 5, Claude Haiku 4.5, Claude Opus 4.8, and Claude Opus 5 were used. Tasks that AI was used for include:
+
+- Code debugging
+- Limited use for code writing, for example the final experiment code based on the previous ones.
+- Technical troubleshooting, such as setting up a r virtual environment and dvc setup
+- Review of early notes and notebook markdown sections to get feedback on clarity and accuracy
+- Transcribing python to r visualisations
+
+All outputs were read and reviewed carefully before being included in the project.
+
+AI was never used:
+
+- to write any of the text in the body of this report
+- to undertake experimental design
+- to interpret results

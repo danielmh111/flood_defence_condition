@@ -1,0 +1,8 @@
+
+# Ethical Consideration
+
+All data collected and processed is used permissibly under their licences with all attributions given (appendix A1). 
+
+This project has low ethical risk because it does not concern human or animal wellbeing during research or development. The major consideration is avoiding misrepresentation of the artifact that could recommend deviating from current effective flood management. One source of bias necessary to raise is that data preparation systematically excludes assets from specific regions, often high population areas where failure of assets would matter most. For example, the assets in the Thames watershed tend to be excluded because they are redacted in the EA's EIR response due to third party management. Results may generalize poorly to these localities - it has not been tested so any use of findings must qualified accordingly.
+Another consideration is that EA information has been obtained and used with reproducibility and transparency in mind, while the EA itself seems committed to controlling disclosure of information, demonstrated through their redaction of assets deemed critical strategic infrastructure. The EA is tasked with preventing information disclosure weakening the national flood defence program, and must have seen potential for open information to increase risk. However, since all results hosted respect redactions, and only with open government licenced datasets, the public nature of the repository is judged not to have further ethic risk.
+Finally, the evaluation section will show modest results that, while answering the research question, do not meet the required bar for this artifact to be operationally useful. The evaluation must be honest in its assessment and recommendations. 

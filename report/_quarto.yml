@@ -1,0 +1,64 @@
+project:
+  type: book
+
+book:
+  output-file: "24057087_report"
+  title: "Does a machine learning approach to predicting flood defence condition grade improve on established heuristic baselines?"
+  author: "Daniel Hill"
+  chapters:
+    - index.qmd
+    - 01_introduction.qmd
+    - 02_literature.qmd
+    - 03_proposed_artifact.qmd
+    - 04_heuristics.qmd
+    - 05_ethics.qmd
+    - 06_ml_method.qmd
+    - 07_results.qmd
+    - 08_evaluatation.qmd
+    - 09_conclusion.qmd
+    - references.qmd
+  appendices:
+    - A1_attributions.qmd
+    - A2_supervisions.qmd
+    - A3_misc.qmd
+    - A4_ethics_form.qmd
+
+engine: knitr
+
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: auto
+  cache: true
+
+bibliography: references.bib
+nocite: |
+  @*
+csl: harvard-university-of-the-west-of-england.csl
+
+format:
+  pdf:
+    documentclass: report
+    toc: true
+    lof: true
+    lot: true
+    number-sections: true
+    geometry:
+      - margin=2.25cm
+    include-in-header:
+      text: |
+        \raggedbottom
+        \renewcommand{\arraystretch}{1.3}
+        \usepackage{changepage}
+        \usepackage{pdflscape}
+        \usepackage[table]{xcolor}
+        \rowcolors{2}{gray!10}{white}
+
+abstract: |
+  Flooding is a serious risk in England, and the EA has the responsibility of managing a large and aging network of flood defence assets, which they give condition grades in regular manual inspections. This project seeks to show that data driven solutions could be developed to assist in this process. The existing heuristics have been evaluated and ML classification methods have been developed, with the two compared. It was found that ML had a significant uplift in precision over heuristics and baselines when looking at the boundary of predicting acceptable conditions vs unacceptable, although performance was not strong enough to recommend immediate development of early warning and intervention tools following this approach.
+
+  **Word Count**: 6,775
+
+  **Respository URL:** https://github.com/danielmh111/flood_defence_condition
+abstract-title: "Abstract"

@@ -1,0 +1,79 @@
+
+
+# Methodology and Design
+
+To meet the objective of being a reproducible research artifact, the code repository is designed for reuse and extension by future collaborators, whether researchers or practitioners. It contains source code as a locally installable package, designed to be managed with well known package manager uv, with configuration and lock files for identical installation across machines. Code is organised by into source code, experiments, and notebooks. Notebooks are designed as finished accounts of work completed, but are rerunnable once the project is set up. To allow for reproduction and extension of work, the repository contains a citation cff file and an MIT licence. Scripts used for one-off tasks are committed in their own folder. 
+
+All active research was carried out in this repository. Chronologically numbered notebooks contain EDAs for each data source, used to investigate feature extraction, engineering,and selection. Each experiment is a module with its own design, recording results and run logs within. Notebooks then interrogate results, and this is where findings are found and discussed.
+
+The methodology of each stage of research is discussed in more depth:
+
+\pagebreak
+
+::: {.landscape}
+
+![Data Collection and Integration ]("figures/dataIntegration.pdf"){#fig-data-integration width=100%}
+
+\pagebreak
+:::
+
+## Experiments Design
+
+These are loops that train and test many model variations, and emit results for each design plus benchmarks. The four experiments are:
+
+1. Baseline: initial implementation of written src code with simplest models
+2. Coursegrid: simple hyperparameter choices, main intent to test different feature selections
+3. Fine grid: refined choice of features, granular choice of hyperparameters
+4. Final grid: only two final feature compositions, fine mesh of hyperparameters known to contain optimum values
+
+For each experiment, intent was known and evaluation was designed before it was run, meaning decisions about success and interesting findings stayed honest. Experiment design was nonetheless iterative: findings of each inform the next design, including the next feature compositions, choice of hyperparameter grids, and code architecture. Within each experiment, several ML-specific considerations were made:
+
+### Spatial Cross Validation
+
+Flooding is a geographic phenomenon - it occurs beside rivers or coastlines, often on low-lying or flat areas. Human settlements and other valuable constructions follow other geographic rules. Its therefore unsurprising to see flood defences form geographic clusters. Plotting them makes it visually clear that condition grades are geographically correlated - e.g. a cluster of lower graded assets in the South East while the South West has mostly fair conditioned defences. This leads to a problem configuration where it could be possible to train a model that seems to succeed by making good predictions when the geographical location of the asset is encoded in one or more of the features. However, since it is desired that this project demonstrates it is possible to learn the condition of the asset from its own features, spatially blocked cross validation is used so metrics are not inflated when an asset nearby to training examples is evaluated, following recommendations in @ref-robertsCrossvalidationStrategiesData2017. 
+
+## Model and Data choices
+
+| Step | Rule | Remaining |
+|---|---|---|
+| EIR response | inspection records supplied under EIR | 1,037,164 rows |
+| Disclosed grade | drop 888 / 999 redaction sentinels and blanks | 275,571 rows |
+| One row per asset | most recent inspection retained | 36,562 assets |
+| Matched to AIMS | inner join on asset ID (141,996 assets in register) | 35,270 assets |
+| Interpretable grade | drop grade 0 (Unchecked) | 35,202 assets |
+| Engineered defence | Natural High Ground excluded as passive landform | 23,304 assets |
+:Valid Asset Filter Funnel {#tbl-filter-funnel}
+
+### Ordinal Awareness
+
+Condition grades are not five pure categories but an ordinal hierarchy - grade 1 is better condition than 2, which is better than 3 and so on. Evaluation must respect this. Models should be punished more for misclassifying a grade 2 asset as grade 5 than as grade 3. This means we would want metrics chosen to evaluate models to indicate a poorer performance by being lower (or higher, depending on metric). @ref-survey-ordinal documents ordinal-aware classification methods, and describes the @ref-frankSimpleApproachOrdinal2001 ensemble method explored in this project. 
+
+### Model Selection
+
+Gradient boosting is a well known ML paradigm producing strong results, and handles null values and correlated features - important when working with messy data sets [@ref-jamesIntroductionStatisticalLearning2023]. Histogram Gradient Boosting, a scikit-learn implementation of the LightGBM algorithm [@ref-LightGBM; @ref-HistGradientBoostingClassifier] was chosen for its native handling of mixed categorical, continuous and discrete inputs, an advantage over ensembles like random forest. Boosting rather than bagging ensembles were chosen for better potential with unbalanced data, considering the main objective is to be good at predicting the minority classes (grades 4 and 5). Another advantage of tree-based ensembles is explainability. Given research investigates feasibility of developing an operational tool, ability to explain how decisions get made is valuable. Trees are a concept that can be grasped intuitively, and additionally allow explainability through feature importance and SHAP value analysis. 
+
+One way successful models were categorised was ability to classify well in the context of ordinal labelling, and to cope with significant class imbalance (~67% of all assets were grade 3). Class imbalance was so strong that a model simply predicting the median every time would achieve a fair MAE and accuracy, so these two metrics were relegated. Instead, quadratic weighted Cohen's kappa score (qwk) was identified [@ref-bendavidComparisonClassificationAccuracy2008]. This rewards models performing well in ordinal-awareness, providing a scale that is sensible and interpretable in the context of class imbalance. 
+
+### Other Considerations
+
+Shapley additive explanations (SHAP) serve two purposes: 
+
+1. deciding which features impact models to inform feature selection
+2. exploring which sources and types of data improve models, and at which grades, in order to understand how predictive signal is encoded in data sources [@ref-muschalikShapiqShapleyInteractions2024a].
+
+The experiment loops were designed knowing this evaluation was needed so that SHAP values were calculated per-model, per-fold, and emitted. Analysis is then done on individual cells or averaged values filtering to specific families of model configurations.
+
+## Evaluation Approach
+
+A consistent target was defined as condition grade present in the EA's response to the Environmental Information Request (EIR), rather than the version in flux in the online AIMS portal. This was consistent and used for every model iteration, dummy classifiers, and heuristic classifiers to allow honest comparisons. These dummy classifiers were naive predictors that could be used as baselines. They were:
+
+- a flat baseline always predicting the median (grade 3). This could do well on many metrics because of the severe class imbalance. However, it is known to have no skill so should perform poorly on any metrics that reward models for ability to perform well on minority classes and make ordinally aware predictions
+- a classifier that draws the prediction randomly from the known distribution of condition grades. This allows this baseline to make some predictions at the interesting minority classes (4 and 5) but is still known to have no skill, so can be used as a the benchmark to beat in this part of the problem.
+
+In early work, a wide variety of metrics were used, including but not limited to mean absolute error (MAE), precision, recall, and accuracy, and macro f1 score. We could see that MAE did not work for rewarding models with better ordinal awareness so QWK was adopted early in the project. For final experiments, area under the precision-recall curve considering predictions for grade 4 and 5 only (PR-AUC $\ge{4}$) was used as a headline statistic focused on rewarding models that performed well and indicated they had learned skill at predicting the operationally significant classes, as well as qwk for ordinal awareness, and f1 score for grades as a supplementary metric. Reliance on F1 score was decreased because it depends on the probability threshold being set first. F1 score doesn't discriminate predictions whether they have 0.65 probability of being class 4 or 0.95. Once it became clear that the artifact would have to set the threshold high or use the probability to rank the most confident predictions, F1 became hard to use on the whole dataset while PR-AUC was still useful.
+
+Overall evaluation of the artifact will include:
+
+- performance of models, directly relating to the research question
+- how the artifact has uncovered information necessary to make good predictions
+- whether the artifact helps inform future work through findings and reproducibility.

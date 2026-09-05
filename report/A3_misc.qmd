@@ -1,0 +1,58 @@
+# Data Dictionary
+
+```{r misc-setup}
+library(tidyverse)
+library(kableExtra)
+```
+
+```{=latex}
+\begin{adjustwidth}{-2cm}{-2cm}
+```
+
+```{r tbl-data-dictionary}
+
+dict <- read_csv("data_dictionary.csv")
+
+dict_tbl <- dict %>%
+    kable(
+        caption = "Data dictionary describing features used in modelling",
+        na = "-",
+        format = "latex",
+        longtable = TRUE,
+        booktabs = TRUE
+    ) %>%
+    kable_styling(
+        latex_options = c("striped", "repeat_header"),
+        font_size = 8
+    ) %>%
+    column_spec(1, width = "3.5cm") %>%
+    column_spec(2, width = "2.5cm") %>%
+    column_spec(3, width = "1.5cm") %>%
+    column_spec(4, width = "7cm")
+
+
+dict_tbl
+```
+
+![Final Confusion Matrices]("figures/nb_21_top_200_conf_matrices.png"){#fig-conf-matrices}
+
+![Full Heuristic Curves]("figures/heuristic_curves.png"){#fig-all-heuristic-curves}
+
+| Parameter             | Selected            | Best PR-AUC (climate) | Best PR-AUC (full)  | Best QWK            |
+|-----------------------|----------------------|-----------------------|---------------------|---------------------|
+| `cell_id`             | `4e993f867560`       | `8de98379fe6f`        | `57eee29de136`      | `4009966c6869`      |
+| Composition           | `identity_lidar_climate_raw` | `identity_lidar_climate_raw` | `identity_lidar_full` | `identity_lidar_full` |
+| `capacity`            | 2.5                  | 1.6                   | TBC                 | 4.0                 |
+| `learning_rate`       | 0.025                | 0.025                 | TBC                 | 0.05                |
+| `max_iter` (derived)  | 100                  | 64                    | TBC                 | 80                  |
+| `max_leaf_nodes`      | 16                   | 31                    | TBC                 | 8                   |
+| `min_samples_leaf`    | 5                    | 5                     | TBC                 | 5                   |
+| `max_bins`            | 255                  | 255                   | TBC                 | 255                 |
+| `l2_regularization`   | 0.0                  | 0.0                   | TBC                 | 1.0                 |
+| PR-AUC(≥4)            | 0.1966               | 0.1977                | 0.1960              | 0.1954              |
+| QWK                   | 0.2796               | 0.2802                | 0.2845              | 0.2883              |
+: Hyperparameters of the reported models. Metrics are means across the ten cv folds. {#tbl-final-hyperparams}
+
+```{=latex}
+\end{adjustwidth}
+```

@@ -1,0 +1,12 @@
+# Record of Supervisons
+
+| Date | Topics discussed | Actions agreed/taken |
+|------|------------------|----------------------|
+| 2026-09-01 | Report structure and formatting; niche referencing best practices; application of marking rubric to chapter sections; licencing considerations. |       |
+| 2026-07-21  | progress through technical part of the project and realistic time boxes for the write up; <br>final report structure, specifically what part of my currently produced research will fit into which chapters; <br>some of the current findings and which will become findings worth writing up; <br>briefly touched on ordinal awareness and why certain metrics are appropriate |   |
+| 2026-07-14  | Discussion of appropriate metrics, including why MAE wasn't appropriate, investigation of Cohen's Kappa and quadratic weighted Cohen's Kappa, why pr-auc is useful, why focusing on metrics at grade 4 and 5 is valuable | Use qwk and pr-auc at grade >= 4 as headline stats to guide next experiments  |
+| 2026-07-07  | Update of progress; <br>explaination of heuristic limitations found; <br>discussion on how to construct a narrative throughline; <br>discussion of class imbalance challenge and how it will effect model performance and choice of evaluation metrics | Decided on items to discuss in the next meeting: Scope of producing a limited number of perfect heuristic predictions; <br>the current performance of ML models and what good/adequate performance means in context; <br>what metrics are appropriate  |
+| 2026-06-30  | Meeting cancelled, progress update shared by email and some of Kat's questions on ml approaches answered by explaining categorical and discrete data constraints |   |
+| 2026-05-26  | Ethics Considerations; <br>Division between minimum viable project goals and stretch goals; <br>In depth discussion of what constitutes an artifact and how artifact quality is weighed against holistic research output when marking the project; <br>discussion of mathematical and visualisation techniques for modelling and quantifying state changes  | Ethics form completed and sent to Kat; <br>prioritise finished data processing so that I can be more confident when discussing which techniques will and won't work  |
+
+: Record of supervisions and discussions {#tbl-appendix-supervison-record}

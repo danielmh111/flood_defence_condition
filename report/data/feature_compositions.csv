@@ -1,0 +1,19 @@
+composition,experiment,n_features,added_to_identity_base
+identity,"Coarse, fine",7,"(base only)"
+identity_geo,Coarse,14,"bedrock_lex_rcs_binned; six GeoSure class ordinals (running sand, shrink-swell, compressible ground, soluble rocks, landslides, collapsible deposits)"
+identity_climate,Coarse,11,"drydays 30y rate and z; ftc 30y rate and z"
+identity_lidar,Coarse,11,"crest_resid_std; crest_resid_max_dip; crest_prominence_median; crest_resid_tv_range"
+identity_all,Coarse,22,"all identity_geo, identity_lidar and identity_climate additions combined"
+identity_bedrock,Fine,8,bedrock_lex_rcs_binned
+identity_climate_raw,Fine,9,"drydays 30y rate; ftc 30y rate"
+identity_climate_z,Fine,9,"drydays 30y z; ftc 30y z"
+identity_climate_full,Fine,11,"drydays 30y rate and z; ftc 30y rate and z"
+identity_resid_std,Fine,8,crest_resid_std
+identity_lidar_core,Fine,9,"crest_resid_std; crest_prominence_median"
+identity_lidar_no_tv,Fine,10,"crest_resid_std; crest_prominence_median; crest_resid_max_dip"
+identity_lidar_offset,Fine,11,"crest_resid_std; crest_prominence_median; crest_resid_max_dip; crest_offset_median"
+identity_lidar_full,"Fine, final",11,"crest_resid_std; crest_prominence_median; crest_resid_max_dip; crest_resid_tv_range"
+identity_lidar_bedrock,Fine,11,"crest_resid_std; crest_prominence_median; crest_resid_max_dip; bedrock_lex_rcs_binned"
+identity_lidar_climate_raw,"Fine, final",12,"crest_resid_std; crest_prominence_median; crest_resid_max_dip; drydays 30y rate; ftc 30y rate"
+identity_lidar_climate_z,Fine,12,"crest_resid_std; crest_prominence_median; crest_resid_max_dip; drydays 30y z; ftc 30y z"
+identity_lidar_climate_bedrock,Fine,13,"crest_resid_std; crest_prominence_median; crest_resid_max_dip; drydays 30y rate; ftc 30y rate; bedrock_lex_rcs_binned"
